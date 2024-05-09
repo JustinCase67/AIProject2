@@ -36,6 +36,8 @@ def main():
     # Problème de la boîte ouverte
     ga_app.add_solution_panel(QUnknownNumberProblemPanel(-1000.0, 0.0, 1000.0))     # note : on passe une instance, pas une classe
     ga_app.add_solution_panel(QOpenBoxProblemPanel())                               # note : on passe une instance, pas une classe
+    ga_app.add_solution_panel(QShapeOptimizerProblemPanel())
+
     # On rajoute le panel ici
     #ga_app.add_solution_panel(QGeometricProblem) 
     #ga_app.add_solution_panel(QMyProblem) 
