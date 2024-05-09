@@ -1,7 +1,8 @@
 import random
 import math
 import numpy as np
-from PySide6.QtCore import Qt, Slot, QPointF,  QSize, QRect
+import math
+from PySide6.QtCore import Qt, Slot, QPointF,  QSize, QRectF
 from PySide6.QtGui import QPolygonF, QTransform , QImage, QPainter, QColor, QPolygonF, QPen, QBrush, QFont
 
 from numpy.typing import NDArray
@@ -31,7 +32,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self.__height = height
         self.__canvas_area = self.__width * self.__height
         self.__shapes = {'Triangle': QPolygonF((QPointF(250, 50), QPointF(175, 200), QPointF(325, 200))),
-                         'Shape2': [],
+                         'Shape2': QPolygonF((QPointF(0, 0), QPointF(0, 20),QPointF(25, 25),QPointF(50, 75), QPointF(75, 25))),
                          'Shape3':[] }
         self.__points_list = []
         #On doit créer un polygon default
@@ -73,6 +74,8 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         
         self._background_color = QColor(48, 48, 48)
         self._shape_color = QColor(148, 164, 222)
+        self._obstacle_color = QColor(255,255,255)
+        self._obstacle_length = 5
 
     @Slot()
     def __set_obstacle_count(self, count: int):
@@ -124,18 +127,22 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
 
             if self.contains(current_shape, self.__points_list):
                 return 0
-            elif self.contains(QRect(0 , 0 , self.__width , self.__height),[current_shape]):
-                return process_area(current_shape)/self.__canvas_area
+            elif self.contains(QRectF(0 , 0 , self.__width , self.__height),[current_shape.bounding_rect()]):
+                return process_area(current_shape)/self.__canvas_area * 100000
             else :
                 return 0
 
         return ProblemDefinition(domains, objective_fonction)
     
-    def contains(container, containees):
-        for c in containees:
-            if container.contains(c):
+    def contains(self, container, containees):
+        if isinstance(container, QPolygonF):
+            for c in containees:
+                if container.contains_point(c, Qt.OddEvenFill):
+                    return True
+        else:
+            if container.contains(containees[0]):
+                
                 return True
-            
         return False
             
         
@@ -146,10 +153,20 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         # paramètres par défault à changer éventuellement
         return engine_parameters
     
-    def _draw_triangle(self, painter : QPainter, polygon : QPolygonF ) -> None:
+    def _draw_polygon(self, painter : QPainter, polygon : QPolygonF ) -> None:
+        painter.save()
         painter.set_pen(Qt.NoPen)
         painter.set_brush(self._shape_color)
         painter.draw_polygon(polygon)
+        painter.restore()
+        
+    def _draw_obstacles(self, painter : QPainter):
+        painter.save()
+        painter.set_pen(Qt.NoPen)
+        painter.set_brush(self._obstacle_color)
+        for obstacle in self.__points_list:            
+            painter.draw_ellipse(obstacle.x(), obstacle.y(), self._obstacle_length, self._obstacle_length )
+        painter.restore()
 
     def _update_from_simulation(self, ga: GeneticAlgorithm | None) -> None:
         print('Je suis un override pour le dessin')
@@ -158,14 +175,21 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         image.fill(self._background_color)
         painter = QPainter(image)
         painter.set_pen(Qt.NoPen)
+           
+        self._draw_obstacles(painter)
         
         
         if ga:
             print("ga")
+            #best_solution = ga._genitors[ga._genitors_fit[0]['index']]
+            #print(best_solution)
+            
+            
             
         else:
             form = self.__shapes[self._shape_picker.current_text]
-            self._draw_triangle(painter, form)     
+            self._draw_polygon(painter, form)  
+            
             
         painter.end()
         self._visualization_widget.image = image
