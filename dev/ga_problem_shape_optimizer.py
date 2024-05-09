@@ -1,4 +1,5 @@
 import random
+import math
 import numpy as np
 from PySide6.QtCore import Qt, Slot, QPointF, QRect
 from PySide6.QtGui import QPolygonF, QTransform
@@ -26,6 +27,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         super().__init__(parent)
         self.__width = width
         self.__height = height
+        self.__canvas_area = self.__width * self.__height
         self.__shapes = {'Triangle': QPolygonF((QPointF(250, 50), QPointF(175, 200), QPointF(325, 200))),
                          'Shape2': [],
                          'Shape3':[] }
@@ -36,7 +38,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         area = process_area(self.temp_current)
         self._canvas_value = QLabel(f"{self.__width} x {self.__height}")
         self._obstacle_scroll_bar, obstacle_layout = create_scroll_int_value(
-            1, 25, 100) #Passer en paramètre
+            1, 25, 100) #Passer en paramètre le maximum
         self._obstacle_scroll_bar.valueChanged.connect(
             self.__set_obstacle_count)
     
@@ -44,7 +46,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self._shape_picker.add_items(self.__shapes.keys())
         self._shape_picker.activated.connect(
             self._update_from_simulation(None))
-
+        #On doit faire le connect du Combox
         param_group_box = QGroupBox('Parameters')
         param_layout = QFormLayout(param_group_box)
         param_layout.add_row('Canvas size', self._canvas_value)
@@ -89,39 +91,31 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         dimensions_values = [[-(self.__width / 2), self.__width / 2],
                              [-(self.__height / 2), self.__height / 2],
                              [0, 360],
-                             [0,((self.__width * self.__height)/(2*process_area(self.temp_current)))]]  # à changer avec le calcul. borne exclue calculable? sinon score 0.
-        # Contradiction entre typehiting et docstring ?
+                             [0,math.sqrt(((self.__canvas_area)/process_area(self.temp_current)))]] 
         domains = Domains(np.array(dimensions_values), (
             'Translation en X', 'Translation en Y', 'Rotation', 'Homéothétie'))
 
         def objective_fonction(chromosome: NDArray) -> float:
-            print(chromosome)
-            #transform = QTransform().translate(chromosome[0], chromosome[1])
+            t1 = QTransform().translate(chromosome[0], chromosome[1]).rotate(chromosome[2]).scale(chromosome[3], chromosome[3])
+            
             #t2= QTransform().rotate(chromosome[2])
             #t3= QTransform().scale(chromosome[3], chromosome[3])
             
-            t1 = QTransform().translate(52, 65)
-            t2= QTransform().rotate(290)
-            t3= QTransform().scale(6.5, 6.5)
+            #t1 = QTransform().translate(52, 65)
+            #t2= QTransform().rotate(290)
+            #t3= QTransform().scale(6.5, 6.5)
 
 
             current_shape = t1.map(self.temp_current)
-            current_shape = t2.map(current_shape)
-            current_shape = t3.map(current_shape)
-            area = process_area(current_shape)
-            print(area)
+            #current_shape = t2.map(current_shape)
+            #current_shape = t3.map(current_shape)
 
             if self.contains(current_shape, self.__points_list):
                 return 0
             elif self.contains(QRect(0 , 0 , self.__width , self.__height),[current_shape]):
-                pass
+                return process_area(current_shape)/self.__canvas_area
             else :
                 return 0
-
-
-           
-            # calcule aire de la forme avec les transformations / aire totale -> score
-            print(area)
 
         return ProblemDefinition(domains, objective_fonction)
     
