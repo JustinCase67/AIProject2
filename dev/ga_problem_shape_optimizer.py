@@ -30,7 +30,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self.__width = width
         self.__height = height
         self.__canvas_area = self.__width * self.__height
-        self.__shapes = {'Triangle': QPolygonF((QPointF(250, 50), QPointF(175, 200), QPointF(325, 200))),
+        self.__shapes = {'Triangle': QPolygonF((QPointF(0-43.33, 0-75), QPointF(0-43.33, 150-75), QPointF(130-43.33, 75-75))),
                          'Shape2': [],
                          'Shape3':[] }
         self.__points_list = []
@@ -47,7 +47,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self._shape_picker = QComboBox()
         self._shape_picker.add_items(self.__shapes.keys())
         self._shape_picker.activated.connect(
-            self._update_from_simulation(None))
+            self._update_from_simulation)
         #On doit faire le connect du Combox
 
 
@@ -100,8 +100,8 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
     
     @property
     def problem_definition(self) -> ProblemDefinition:
-        dimensions_values = [[-(self.__width / 2), self.__width / 2],
-                             [-(self.__height / 2), self.__height / 2],
+        dimensions_values = [[0, self.__width],
+                             [0, self.__height],
                              [0, 360],
                              [0,math.sqrt(((self.__canvas_area)/process_area(self.temp_current)))]] 
         domains = Domains(np.array(dimensions_values), (
@@ -147,6 +147,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         return engine_parameters
     
     def _draw_triangle(self, painter : QPainter, polygon : QPolygonF ) -> None:
+        painter.translate(painter.device().rect().center())
         painter.set_pen(Qt.NoPen)
         painter.set_brush(self._shape_color)
         painter.draw_polygon(polygon)
