@@ -7,6 +7,7 @@ from gaapp import QGAApp
 from ga_strategy_genes_mutation import GenesMutationStrategy
 from ga_problem_unknown_number import QUnknownNumberProblemPanel
 from ga_problem_open_box import QOpenBoxProblemPanel
+from ga_problem_shape_optimizer import QShapeOptimizerProblemPanel
 
 
 from PySide6.QtWidgets import QApplication

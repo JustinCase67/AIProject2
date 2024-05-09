@@ -1,6 +1,6 @@
 import numpy as np
-from PySide6.QtCore import Qt, Slot, QPointF
-from PySide6.QtGui import QPolygonF, QTransform
+from PySide6.QtCore import Qt, Slot, QPointF,  QSize
+from PySide6.QtGui import QPolygonF, QTransform , QImage, QPainter, QColor, QPolygonF, QPen, QBrush, QFont
 from numpy.typing import NDArray
 
 from gaapp import QSolutionToSolvePanel
@@ -8,6 +8,7 @@ from gacvm import ProblemDefinition, Domains, Parameters, GeneticAlgorithm
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, \
     QGroupBox, QFormLayout, QSizePolicy, QComboBox
+
 
 from __feature__ import snake_case, true_property
 
@@ -35,7 +36,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self._shape_picker = QComboBox()
         self._shape_picker.add_items(self.__shapes.keys())
         self._shape_picker.activated.connect(
-            self._update_from_simulation(None))
+            self._update_from_simulation)
 
         param_group_box = QGroupBox('Parameters')
         param_layout = QFormLayout(param_group_box)
@@ -47,11 +48,17 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
 
         # Création de la zone de visualisation
         self._visualization_widget = QImageViewer(True)
+        
 
         # Création du layout principal
         main_layout = QVBoxLayout(self)
         main_layout.add_widget(param_group_box)
         main_layout.add_widget(self._visualization_widget)
+        
+        
+        
+        self._background_color = QColor(48, 48, 48)
+        self._shape_color = QColor(148, 164, 222)
 
     @Slot()
     def __set_obstacle_count(self, count: int):
@@ -70,7 +77,8 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
     @property
     def description(self) -> str:
         return '''Description, voir modèle.'''
-
+    
+    
     @property
     def problem_definition(self) -> ProblemDefinition:
         dimensions_values = [[-(self.__width / 2), self.__width / 2],
@@ -103,6 +111,32 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         engine_parameters = Parameters()
         # paramètres par défault à changer éventuellement
         return engine_parameters
+    
+    def _draw_triangle(self, painter : QPainter, polygon : QPolygonF ) -> None:
+        painter.set_pen(Qt.NoPen)
+        painter.set_brush(self._shape_color)
+        painter.draw_polygon(polygon)
 
     def _update_from_simulation(self, ga: GeneticAlgorithm | None) -> None:
         print('Je suis un override pour le dessin')
+        
+        image = QImage(QSize(self.__width - 1, self.__height - 1), QImage.Format_ARGB32)
+        
+        image.fill(self._background_color)
+        painter = QPainter(image)
+        painter.set_pen(Qt.NoPen)
+        
+        
+        if ga:
+            print("ga")
+            
+        else:
+            form = self.__shapes[self._shape_picker.current_text]
+            self._draw_triangle(painter, form)     
+            
+        painter.end()
+        self._visualization_widget.image = image
+            
+            
+            
+        
