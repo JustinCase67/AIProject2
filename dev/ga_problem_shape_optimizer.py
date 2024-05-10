@@ -48,7 +48,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self._shape_picker = QComboBox()
         self._shape_picker.add_items(self.__shapes.keys())
         self._shape_picker.activated.connect(
-            self._update_from_simulation(None))
+            self._update_from_simulation)
         #On doit faire le connect du Combox
 
 
@@ -106,7 +106,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         dimensions_values = [[-(self.__width / 2), self.__width / 2],
                              [-(self.__height / 2), self.__height / 2],
                              [0, 360],
-                             [0,math.sqrt(((self.__canvas_area)/process_area(self.temp_current)))]] 
+                             [0, math.sqrt(((self.__canvas_area)/process_area(self.temp_current)))]] 
         domains = Domains(np.array(dimensions_values), (
             'Translation en X', 'Translation en Y', 'Rotation', 'Homéothétie'))
 
@@ -128,7 +128,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
             if self.contains(current_shape, self.__points_list):
                 return 0
             elif self.contains(QRectF(0 , 0 , self.__width , self.__height),[current_shape.bounding_rect()]):
-                return process_area(current_shape)/self.__canvas_area * 100000
+                return process_area(current_shape)/self.__canvas_area * 10000
             else :
                 return 0
 
@@ -136,12 +136,12 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
     
     def contains(self, container, containees):
         if isinstance(container, QPolygonF):
+            counter = 0
             for c in containees:
                 if container.contains_point(c, Qt.OddEvenFill):
                     return True
         else:
             if container.contains(containees[0]):
-                
                 return True
         return False
             
@@ -150,7 +150,9 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
     @property
     def default_parameters(self) -> Parameters:
         engine_parameters = Parameters()
-        # paramètres par défault à changer éventuellement
+        # Utiliser Mutate all genes
+        engine_parameters.maximum_epoch = 3500
+        engine_parameters.mutation_rate = 0.6
         return engine_parameters
     
     def _draw_polygon(self, painter : QPainter, polygon : QPolygonF ) -> None:
@@ -169,28 +171,29 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         painter.restore()
 
     def _update_from_simulation(self, ga: GeneticAlgorithm | None) -> None:
-        print('Je suis un override pour le dessin')
         image = QImage(QSize(self.__width - 1, self.__height - 1), QImage.Format_ARGB32)
         
         image.fill(self._background_color)
         painter = QPainter(image)
         painter.set_pen(Qt.NoPen)
            
-        self._draw_obstacles(painter)
-        
+        form = self.__shapes[self._shape_picker.current_text]
         
         if ga:
             print("ga")
-            #best_solution = ga._genitors[ga._genitors_fit[0]['index']]
-            #print(best_solution)
+            b = ga._genitors[ga._genitors_fit[0]['index']]
+            t1 = QTransform().translate(b[0], b[1]).rotate(b[2]).scale(b[3], b[3])
+            form = t1.map(form)
             
-            
-            
+            self._draw_polygon(painter, form)  
+
+        
         else:
             form = self.__shapes[self._shape_picker.current_text]
             self._draw_polygon(painter, form)  
             
             
+        self._draw_obstacles(painter)
         painter.end()
         self._visualization_widget.image = image
 
