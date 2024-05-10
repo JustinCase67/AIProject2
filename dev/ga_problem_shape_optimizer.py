@@ -31,9 +31,9 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self.__width = width
         self.__height = height
         self.__canvas_area = self.__width * self.__height
+        self.__triangle_center = QPointF(37.5, 12.184)
         self.__shapes = {'Triangle': QPolygonF((QPointF(0-43.33, 0-75), QPointF(0-43.33, 150-75), QPointF(130-43.33, 75-75))),
-                         'Etoile': QPolygonF((QPointF(0, 0), QPointF(25, 0), QPointF(37.5, -21.65), QPointF(50, 0), QPointF(75, 0), 
-                                              QPointF(62.5, 21.65), QPointF(75, 43.3), QPointF(37.5, 38.47), QPointF(0, 43.3), QPointF(12.5, 21.65), )),
+                         'Etoile': QPolygonF((QPointF(0, 0), QPointF(75, 0), QPointF(14.324, 44.089), QPointF(37.5, -27.246), QPointF(60.676, 44.089))),
                          'Shape3':[] }
         self.__points_list = []
         #On doit créer un polygon default
