@@ -30,12 +30,12 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self.__width = width
         self.__height = height
         self.__canvas_area = self.__width * self.__height
-        self.__shapes = {'Triangle': QPolygonF(
-            (QPointF(250, 50), QPointF(175, 200), QPointF(325, 200))),
-                         'Shape2': QPolygonF((QPointF(0, 0), QPointF(0, 20),
-                                              QPointF(25, 25), QPointF(50, 75),
-                                              QPointF(75, 25))),
-                         'Shape3': []}
+        self.__triangle_center = QPointF(43.33, 75)
+        self.__etoile_center = QPointF(37.5, 12.184)
+        self.__shapes = {'Triangle': QPolygonF((QPointF(0, 0)-self.__triangle_center, QPointF(0, 150)-self.__triangle_center, QPointF(130, 75)-self.__triangle_center)),
+                         'Etoile': QPolygonF((QPointF(0, 0)-self.__etoile_center, QPointF(75, 0)-self.__etoile_center, QPointF(14.324, 44.089)-self.__etoile_center, 
+                                              QPointF(37.5, -27.246)-self.__etoile_center, QPointF(60.676, 44.089)-self.__etoile_center)),
+                         'Shape3':[] }
         self.__points_list = []
         self.__current_shape = self.__shapes["Triangle"] # changer pour none
         # Création des widgets de paramétrage et de leur layout
@@ -47,7 +47,9 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
 
         self._shape_picker = QComboBox()
         self._shape_picker.add_items(self.__shapes.keys())
-        self._shape_picker.activated.connect(lambda: self.__set_current_shape(self._shape_picker.current_text))
+        self._shape_picker.activated.connect(
+            lambda: self._update_from_simulation(None))
+        #On doit faire le connect du Combox
 
         param_group_box = QGroupBox('Parameters')
         param_layout = QFormLayout(param_group_box)
@@ -98,8 +100,8 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
 
     @property
     def problem_definition(self) -> ProblemDefinition:
-        dimensions_values = [[-(self.__width / 2), self.__width / 2],
-                             [-(self.__height / 2), self.__height / 2],
+        dimensions_values = [[0, self.__width],
+                             [0, self.__height],
                              [0, 360],
                              [0, math.sqrt(((
                                                 self.__canvas_area) / process_area(
@@ -154,6 +156,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
 
     def _draw_polygon(self, painter: QPainter, polygon: QPolygonF) -> None:
         painter.save()
+        painter.translate(painter.device().rect().center())
         painter.set_pen(Qt.NoPen)
         painter.set_brush(self._shape_color)
         painter.draw_polygon(polygon)
