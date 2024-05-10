@@ -1,9 +1,10 @@
 import random
 import math
 import numpy as np
-import math
-from PySide6.QtCore import Qt, Slot, QPointF,  QSize, QRectF
-from PySide6.QtGui import QPolygonF, QTransform , QImage, QPainter, QColor, QPolygonF, QPen, QBrush, QFont
+
+from PySide6.QtCore import Qt, Slot, QPointF, QSize, QRectF, QRect
+from PySide6.QtGui import QPolygonF, QTransform, QImage, QPainter, QColor, \
+    QPolygonF, QPen, QBrush, QFont
 
 from numpy.typing import NDArray
 
@@ -11,10 +12,8 @@ from gaapp import QSolutionToSolvePanel
 from gacvm import ProblemDefinition, Domains, Parameters, GeneticAlgorithm
 from PySide6.QtWidgets import QApplication
 
-
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, \
     QGroupBox, QFormLayout, QSizePolicy, QComboBox
-
 
 from __feature__ import snake_case, true_property
 
@@ -31,27 +30,24 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self.__width = width
         self.__height = height
         self.__canvas_area = self.__width * self.__height
-        self.__shapes = {'Triangle': QPolygonF((QPointF(250, 50), QPointF(175, 200), QPointF(325, 200))),
-                         'Shape2': QPolygonF((QPointF(0, 0), QPointF(0, 20),QPointF(25, 25),QPointF(50, 75), QPointF(75, 25))),
-                         'Shape3':[] }
+        self.__shapes = {'Triangle': QPolygonF(
+            (QPointF(250, 50), QPointF(175, 200), QPointF(325, 200))),
+                         'Shape2': QPolygonF((QPointF(0, 0), QPointF(0, 20),
+                                              QPointF(25, 25), QPointF(50, 75),
+                                              QPointF(75, 25))),
+                         'Shape3': []}
         self.__points_list = []
-        #On doit créer un polygon default
+        self.__current_shape = self.__shapes["Triangle"] # changer pour none
         # Création des widgets de paramétrage et de leur layout
-        self.temp_current = self.__shapes["Triangle"]
-        area = process_area(self.temp_current)
         self._canvas_value = QLabel(f"{self.__width} x {self.__height}")
         self._obstacle_scroll_bar, obstacle_layout = create_scroll_int_value(
-            1, 25, 100) #Passer en paramètre le maximum
+            1, 25, 100)  # Passer en paramètre le maximum
         self._obstacle_scroll_bar.valueChanged.connect(
             self.__set_obstacle_count)
-    
+
         self._shape_picker = QComboBox()
         self._shape_picker.add_items(self.__shapes.keys())
-        self._shape_picker.activated.connect(
-            self._update_from_simulation)
-        #On doit faire le connect du Combox
-
-
+        self._shape_picker.activated.connect(lambda: self.__set_current_shape(self._shape_picker.current_text))
 
         param_group_box = QGroupBox('Parameters')
         param_layout = QFormLayout(param_group_box)
@@ -63,29 +59,29 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
 
         # Création de la zone de visualisation
         self._visualization_widget = QImageViewer(True)
-        
 
         # Création du layout principal
         main_layout = QVBoxLayout(self)
         main_layout.add_widget(param_group_box)
         main_layout.add_widget(self._visualization_widget)
-        
-        
-        
+
+        # faire une premiere initialisation ici pour shape et points
         self._background_color = QColor(48, 48, 48)
         self._shape_color = QColor(148, 164, 222)
-        self._obstacle_color = QColor(255,255,255)
+        self._obstacle_color = QColor(255, 255, 255)
         self._obstacle_length = 5
 
     @Slot()
-    def __set_obstacle_count(self, count: int):
-        print(count)
+    def __set_obstacle_count(self, count: int) -> None:
         self.__points_list.clear()
-        #Méthode create_random_point()
         for _ in range(count):
-            x = random.randint(0, self.__width)
-            y = random.randint(0, self.__height)
-            self.__points_list.append(QPointF(x, y))
+            self.__points_list.append(self.get_random_2D_point(self.__width,
+                                                                self.__height))
+        self._update_from_simulation(None)
+
+    @Slot()
+    def __set_current_shape(self, choice: str) -> None:
+        self.__current_shape = self.__shapes[choice]
         self._update_from_simulation(None)
 
     @property
@@ -99,101 +95,99 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
     @property
     def description(self) -> str:
         return '''Description, voir modèle.'''
-    
-    
+
     @property
     def problem_definition(self) -> ProblemDefinition:
         dimensions_values = [[-(self.__width / 2), self.__width / 2],
                              [-(self.__height / 2), self.__height / 2],
                              [0, 360],
-                             [0, math.sqrt(((self.__canvas_area)/process_area(self.temp_current)))]] 
+                             [0, math.sqrt(((
+                                                self.__canvas_area) / process_area(
+                                 self.__current_shape)))]]
         domains = Domains(np.array(dimensions_values), (
             'Translation en X', 'Translation en Y', 'Rotation', 'Homéothétie'))
 
         def objective_fonction(chromosome: NDArray) -> float:
-            t1 = QTransform().translate(chromosome[0], chromosome[1]).rotate(chromosome[2]).scale(chromosome[3], chromosome[3])
-            
-            #t2= QTransform().rotate(chromosome[2])
-            #t3= QTransform().scale(chromosome[3], chromosome[3])
-            
-            #t1 = QTransform().translate(52, 65)
-            #t2= QTransform().rotate(290)
-            #t3= QTransform().scale(6.5, 6.5)
+            evolved_shape = self.transform_shape(self.__current_shape, chromosome)
 
-
-            current_shape = t1.map(self.temp_current)
-            #current_shape = t2.map(current_shape)
-            #current_shape = t3.map(current_shape)
-
-            if self.contains(current_shape, self.__points_list):
+            if self.contains(evolved_shape, self.__points_list):
                 return 0
-            elif self.contains(QRectF(0 , 0 , self.__width , self.__height),[current_shape.bounding_rect()]):
-                return process_area(current_shape)/self.__canvas_area * 10000
-            else :
+            elif self.contains(QRectF(0, 0, self.__width, self.__height),
+                               [evolved_shape.bounding_rect()]):
+                return process_area(evolved_shape) / self.__canvas_area * 10000
+            else:
                 return 0
 
         return ProblemDefinition(domains, objective_fonction)
-    
-    def contains(self, container, containees):
+
+    @staticmethod
+    def contains(container: QPolygonF | QRectF, contained: list[QPointF | QRect]) -> bool:
         if isinstance(container, QPolygonF):
-            counter = 0
-            for c in containees:
+            for c in contained:
                 if container.contains_point(c, Qt.OddEvenFill):
                     return True
         else:
-            if container.contains(containees[0]):
+            if container.contains(contained[0]):
                 return True
         return False
-            
-        
 
     @property
     def default_parameters(self) -> Parameters:
         engine_parameters = Parameters()
         # Utiliser Mutate all genes
-        engine_parameters.maximum_epoch = 3500
+        engine_parameters.maximum_epoch = 350
         engine_parameters.mutation_rate = 0.6
         return engine_parameters
-    
-    def _draw_polygon(self, painter : QPainter, polygon : QPolygonF ) -> None:
+
+    @staticmethod
+    def get_random_2D_point(max_x: int, max_y: int, min_x: int = 0,
+                            min_y: int = 0) -> QPointF:
+        x = random.randint(0, max_x)
+        y = random.randint(0, max_y)
+        return QPointF(x, y)
+
+    @staticmethod
+    def transform_shape(shape: QPolygonF,
+                        transformations: NDArray) -> QPolygonF:
+        t = QTransform().translate(transformations[0], transformations[1]).rotate(transformations[2]).scale(transformations[3], transformations[3])
+        return t.map(shape)
+
+    def _draw_polygon(self, painter: QPainter, polygon: QPolygonF) -> None:
         painter.save()
         painter.set_pen(Qt.NoPen)
         painter.set_brush(self._shape_color)
         painter.draw_polygon(polygon)
         painter.restore()
-        
-    def _draw_obstacles(self, painter : QPainter):
+
+    def _draw_obstacles(self, painter: QPainter):
         painter.save()
         painter.set_pen(Qt.NoPen)
         painter.set_brush(self._obstacle_color)
-        for obstacle in self.__points_list:            
-            painter.draw_ellipse(obstacle.x(), obstacle.y(), self._obstacle_length, self._obstacle_length )
+        for obstacle in self.__points_list:
+            painter.draw_ellipse(obstacle.x(), obstacle.y(),
+                                 self._obstacle_length, self._obstacle_length)
         painter.restore()
 
     def _update_from_simulation(self, ga: GeneticAlgorithm | None) -> None:
-        image = QImage(QSize(self.__width - 1, self.__height - 1), QImage.Format_ARGB32)
-        
+        image = QImage(QSize(self.__width - 1, self.__height - 1),
+                       QImage.Format_ARGB32)
+
         image.fill(self._background_color)
         painter = QPainter(image)
         painter.set_pen(Qt.NoPen)
-           
-        form = self.__shapes[self._shape_picker.current_text]
-        
-        if ga:
-            print("ga")
-            b = ga._genitors[ga._genitors_fit[0]['index']]
-            t1 = QTransform().translate(b[0], b[1]).rotate(b[2]).scale(b[3], b[3])
-            form = t1.map(form)
-            
-            self._draw_polygon(painter, form)  
 
-        
+        form = self.__shapes[self._shape_picker.current_text]
+
+        if ga:
+            best = ga._genitors[ga._genitors_fit[0]['index']]
+            form = self.transform_shape(form, best)
+            self._draw_polygon(painter, form)
+
+
         else:
             form = self.__shapes[self._shape_picker.current_text]
-            self._draw_polygon(painter, form)  
-            
-            
+            self._draw_polygon(painter, form)
+
         self._draw_obstacles(painter)
         painter.end()
         self._visualization_widget.image = image
-
