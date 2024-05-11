@@ -30,11 +30,12 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self.__width = width
         self.__height = height
         self.__canvas_area = self.__width * self.__height
-        self.__triangle_center = QPointF(43.33, 75)
-        self.__etoile_center = QPointF(37.5, 12.184)
+        self.__triangle_center = QPointF(43.334, 75)
+        self.__etoile_center = QPointF(75, 24.368)
         self.__shapes = {'Triangle': QPolygonF((QPointF(0, 0)-self.__triangle_center, QPointF(0, 150)-self.__triangle_center, QPointF(130, 75)-self.__triangle_center)),
-                         'Etoile': QPolygonF((QPointF(0, 0)-self.__etoile_center, QPointF(75, 0)-self.__etoile_center, QPointF(14.324, 44.089)-self.__etoile_center, 
-                                              QPointF(37.5, -27.246)-self.__etoile_center, QPointF(60.676, 44.089)-self.__etoile_center)),
+                         'Etoile': QPolygonF((QPointF(0, 0)-self.__etoile_center, QPointF(57.292, 0)-self.__etoile_center, QPointF(75, -54.492)-self.__etoile_center, QPointF(92.708, 0)-self.__etoile_center, 
+                                              QPointF(150, 0)-self.__etoile_center, QPointF(103.65, 33.675)-self.__etoile_center, QPointF(121.354, 88.163)-self.__etoile_center, 
+                                              QPointF(75, 54.495)-self.__etoile_center, QPointF(28.646, 88.163)-self.__etoile_center, QPointF(46.35, 33.675)-self.__etoile_center)),
                          'Shape3':[] }
         self.__points_list = []
         self.__current_shape = self.__shapes["Triangle"] # changer pour none
@@ -72,6 +73,9 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self._shape_color = QColor(148, 164, 222)
         self._obstacle_color = QColor(255, 255, 255)
         self._obstacle_length = 5
+        
+        # initialiser les obstacles pour les voir avant de commencer
+        self.__set_obstacle_count(self._obstacle_scroll_bar.value)
 
     @Slot()
     def __set_obstacle_count(self, count: int) -> None:
@@ -115,7 +119,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
             if self.contains(evolved_shape, self.__points_list):
                 return 0
             elif self.contains(QRectF(0, 0, self.__width, self.__height),
-                               [evolved_shape.bounding_rect()]):
+                               [evolved_shape.bounding_rect()]):#fonctionne pas avec letoile
                 return process_area(evolved_shape) / self.__canvas_area * 10000
             else:
                 return 0
@@ -154,9 +158,10 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         t = QTransform().translate(transformations[0], transformations[1]).rotate(transformations[2]).scale(transformations[3], transformations[3])
         return t.map(shape)
 
-    def _draw_polygon(self, painter: QPainter, polygon: QPolygonF) -> None:
+    def _draw_polygon(self, painter: QPainter, polygon: QPolygonF, temp) -> None:
         painter.save()
-        painter.translate(painter.device().rect().center())
+        if temp:
+            painter.translate(painter.device().rect().center())
         painter.set_pen(Qt.NoPen)
         painter.set_brush(self._shape_color)
         painter.draw_polygon(polygon)
@@ -169,6 +174,13 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         for obstacle in self.__points_list:
             painter.draw_ellipse(obstacle.x(), obstacle.y(),
                                  self._obstacle_length, self._obstacle_length)
+        painter.restore()
+    
+    def draw_bbox(self, painter: QPainter, polygon: QPolygonF):
+        painter.save()
+        painter.set_pen(Qt.NoPen)
+        painter.set_brush(QColor("Red"))
+        painter.draw_polygon(polygon.bounding_rect())
         painter.restore()
 
     def _update_from_simulation(self, ga: GeneticAlgorithm | None) -> None:
@@ -184,12 +196,14 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         if ga:
             best = ga._genitors[ga._genitors_fit[0]['index']]
             form = self.transform_shape(form, best)
-            self._draw_polygon(painter, form)
-
-
+            self.draw_bbox(painter, form)#pour debug le bounding box
+            self._draw_polygon(painter, form, 0)
+            #JUSTIN ICI TU DOIS DESSINER LES AUTRES FORMES!
+            #REGARDE LE CODE ON DESSINE JUSTE LE BEST' TU DOIS PULL TOUTES LES TRANSFORMATIONS, ITERER SUR LA LISTE ET DESSINER LE CONTOUR POUR CHAQUES
         else:
-            form = self.__shapes[self._shape_picker.current_text]
-            self._draw_polygon(painter, form)
+            #form = self.__shapes[self._shape_picker.current_text]
+            self._draw_polygon(painter, form, 1)
+            pass
 
         self._draw_obstacles(painter)
         painter.end()
