@@ -229,7 +229,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         form = self.__current_shape
 
         if ga:
-            best = ga.history.best_solution[0] # meilleur de l'historique
+            best = ga.history.best_solution # meilleur de l'historique
             # best = ga.population[0] # meilleur de l'époque actuelle
             form = self.transform_shape(form, best)
             self.draw_bbox(painter, form)  # pour debug le bounding box
