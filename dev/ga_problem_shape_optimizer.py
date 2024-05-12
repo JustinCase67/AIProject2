@@ -38,7 +38,8 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
                                               QPointF(75, 54.495)-self.__etoile_center, QPointF(28.646, 88.163)-self.__etoile_center, QPointF(46.35, 33.675)-self.__etoile_center)),
                          'Shape3':[] }
         self.__points_list = []
-        self.__current_shape = self.__shapes["Triangle"] # changer pour none
+        self.__current_shape = self.__shapes['Triangle'] # changer pour none
+        self.__initialized = False
         # Création des widgets de paramétrage et de leur layout
         self._canvas_value = QLabel(f"{self.__width} x {self.__height}")
         self._obstacle_scroll_bar, obstacle_layout = create_scroll_int_value(
@@ -48,9 +49,8 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
 
         self._shape_picker = QComboBox()
         self._shape_picker.add_items(self.__shapes.keys())
-        self._shape_picker.activated.connect(
-            lambda: self._update_from_simulation(None))
-        #On doit faire le connect du Combox
+        self._shape_picker.activated.connect(lambda: self.__set_current_shape(self._shape_picker.current_text))
+
 
         param_group_box = QGroupBox('Parameters')
         param_layout = QFormLayout(param_group_box)
@@ -74,8 +74,12 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self._obstacle_color = QColor(255, 255, 255)
         self._obstacle_length = 5
         
-        # initialiser les obstacles pour les voir avant de commencer
+        self.__initialize_values()
+
+    def __initialize_values(self):
+        self.__set_current_shape(self._shape_picker.current_text)
         self.__set_obstacle_count(self._obstacle_scroll_bar.value)
+        self.__initialized = True
 
     @Slot()
     def __set_obstacle_count(self, count: int) -> None:
@@ -83,12 +87,14 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         for _ in range(count):
             self.__points_list.append(self.get_random_2D_point(self.__width,
                                                                 self.__height))
-        self._update_from_simulation(None)
+        if self.__initialized:
+            self._update_from_simulation(None)
 
     @Slot()
     def __set_current_shape(self, choice: str) -> None:
         self.__current_shape = self.__shapes[choice]
-        self._update_from_simulation(None)
+        if self.__initialized:
+            self._update_from_simulation(None)
 
     @property
     def name(self) -> str:
@@ -148,8 +154,8 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
     @staticmethod
     def get_random_2D_point(max_x: int, max_y: int, min_x: int = 0,
                             min_y: int = 0) -> QPointF:
-        x = random.randint(0, max_x)
-        y = random.randint(0, max_y)
+        x = random.randint(min_x, max_x)
+        y = random.randint(min_y, max_y)
         return QPointF(x, y)
 
     @staticmethod
@@ -184,6 +190,9 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         painter.restore()
 
     def _update_from_simulation(self, ga: GeneticAlgorithm | None) -> None:
+
+
+
         image = QImage(QSize(self.__width - 1, self.__height - 1),
                        QImage.Format_ARGB32)
 
@@ -191,7 +200,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         painter = QPainter(image)
         painter.set_pen(Qt.NoPen)
 
-        form = self.__shapes[self._shape_picker.current_text]
+        form = self.__current_shape#self.__shapes[self._shape_picker.current_text]
 
         if ga:
             best = ga._genitors[ga._genitors_fit[0]['index']]
