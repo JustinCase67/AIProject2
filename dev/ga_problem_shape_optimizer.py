@@ -1,56 +1,82 @@
 import random
 import math
 import numpy as np
-
-from PySide6.QtCore import Qt, Slot, QPointF, QSize, QRectF, QRect
-from PySide6.QtGui import QPolygonF, QTransform, QImage, QPainter, QColor, \
-    QPolygonF, QPen, QBrush, QFont
-
 from numpy.typing import NDArray
 
 from gaapp import QSolutionToSolvePanel
 from gacvm import ProblemDefinition, Domains, Parameters, GeneticAlgorithm
-from PySide6.QtWidgets import QApplication
+from uqtgui import process_area
+from uqtwidgets import QImageViewer, create_scroll_int_value
 
+from PySide6.QtCore import Qt, Slot, QPointF, QSize, QRectF, QRect
+from PySide6.QtGui import QPolygonF, QTransform, QImage, QPainter, QColor, \
+    QPen, QBrush, QFont
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, \
     QGroupBox, QFormLayout, QSizePolicy, QComboBox
 
 from __feature__ import snake_case, true_property
 
-from uqtgui import process_area
-from uqtwidgets import create_scroll_real_value, QImageViewer, \
-    create_scroll_int_value
-
 
 class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
 
+    """_background_color = QColor(48, 48, 48)
+    _shape_color = QColor(148, 164, 222)
+    _obstacle_color = QColor(255, 255, 255)
+    _obstacle_length = 5
+    Il faudrait des variables de classe, voir QUnknownProblem"""
+
     def __init__(self, width: int = 500, height: int = 250,
+                 max_obst: int = 100,
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.__initialized = False
         self.__width = width
         self.__height = height
-        self.__canvas_area = self.__width * self.__height
+        self.__canvas_area = self.__width * self.__height  # est-ce vraiment utile ?
+        self.__points_list = []
+        self.__current_shape = None
+
         self.__triangle_center = QPointF(43.334, 75)
         self.__etoile_center = QPointF(75, 24.368)
-        self.__shapes = {'Triangle': QPolygonF((QPointF(0, 0)-self.__triangle_center, QPointF(0, 150)-self.__triangle_center, QPointF(130, 75)-self.__triangle_center)),
-                         'Etoile': QPolygonF((QPointF(0, 0)-self.__etoile_center, QPointF(57.292, 0)-self.__etoile_center, QPointF(75, -54.492)-self.__etoile_center, QPointF(92.708, 0)-self.__etoile_center, 
-                                              QPointF(150, 0)-self.__etoile_center, QPointF(103.65, 33.675)-self.__etoile_center, QPointF(121.354, 88.163)-self.__etoile_center, 
-                                              QPointF(75, 54.495)-self.__etoile_center, QPointF(28.646, 88.163)-self.__etoile_center, QPointF(46.35, 33.675)-self.__etoile_center)),
-                         'Shape3':[] }
-        self.__points_list = []
-        self.__current_shape = self.__shapes['Triangle'] # changer pour none
-        self.__initialized = False
-        # Création des widgets de paramétrage et de leur layout
+        self.__shapes = {'Triangle': QPolygonF((QPointF(0,
+                                                        0) - self.__triangle_center,
+                                                QPointF(0,
+                                                        150) - self.__triangle_center,
+                                                QPointF(130,
+                                                        75) - self.__triangle_center)),
+                         'Etoile': QPolygonF((QPointF(0,
+                                                      0) - self.__etoile_center,
+                                              QPointF(57.292,
+                                                      0) - self.__etoile_center,
+                                              QPointF(75,
+                                                      -54.492) - self.__etoile_center,
+                                              QPointF(92.708,
+                                                      0) - self.__etoile_center,
+                                              QPointF(150,
+                                                      0) - self.__etoile_center,
+                                              QPointF(103.65,
+                                                      33.675) - self.__etoile_center,
+                                              QPointF(121.354,
+                                                      88.163) - self.__etoile_center,
+                                              QPointF(75,
+                                                      54.495) - self.__etoile_center,
+                                              QPointF(28.646,
+                                                      88.163) - self.__etoile_center,
+                                              QPointF(46.35,
+                                                      33.675) - self.__etoile_center)),
+                         'Shape3': []}
+
+        # Création des widgets et du layout global
         self._canvas_value = QLabel(f"{self.__width} x {self.__height}")
         self._obstacle_scroll_bar, obstacle_layout = create_scroll_int_value(
-            1, 25, 100)  # Passer en paramètre le maximum
+            1, 25, max_obst)
         self._obstacle_scroll_bar.valueChanged.connect(
             self.__set_obstacle_count)
 
         self._shape_picker = QComboBox()
         self._shape_picker.add_items(self.__shapes.keys())
-        self._shape_picker.activated.connect(lambda: self.__set_current_shape(self._shape_picker.current_text))
-
+        self._shape_picker.activated.connect(
+            lambda: self.__set_current_shape(self._shape_picker.current_text))
 
         param_group_box = QGroupBox('Parameters')
         param_layout = QFormLayout(param_group_box)
@@ -60,23 +86,20 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         param_group_box.size_policy = QSizePolicy(QSizePolicy.Preferred,
                                                   QSizePolicy.Maximum)
 
-        # Création de la zone de visualisation
         self._visualization_widget = QImageViewer(True)
 
-        # Création du layout principal
         main_layout = QVBoxLayout(self)
         main_layout.add_widget(param_group_box)
         main_layout.add_widget(self._visualization_widget)
 
-        # faire une premiere initialisation ici pour shape et points
         self._background_color = QColor(48, 48, 48)
         self._shape_color = QColor(148, 164, 222)
         self._obstacle_color = QColor(255, 255, 255)
         self._obstacle_length = 5
-        
+
         self.__initialize_values()
 
-    def __initialize_values(self):
+    def __initialize_values(self) -> None:
         self.__set_current_shape(self._shape_picker.current_text)
         self.__set_obstacle_count(self._obstacle_scroll_bar.value)
         self.__initialized = True
@@ -86,7 +109,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self.__points_list.clear()
         for _ in range(count):
             self.__points_list.append(self.get_random_2D_point(self.__width,
-                                                                self.__height))
+                                                               self.__height))
         if self.__initialized:
             self._update_from_simulation(None)
 
@@ -120,12 +143,14 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
             'Translation en X', 'Translation en Y', 'Rotation', 'Homéothétie'))
 
         def objective_fonction(chromosome: NDArray) -> float:
-            evolved_shape = self.transform_shape(self.__current_shape, chromosome)
+            evolved_shape = self.transform_shape(self.__current_shape,
+                                                 chromosome)
 
             if self.contains(evolved_shape, self.__points_list):
                 return 0
             elif self.contains(QRectF(0, 0, self.__width, self.__height),
-                               [evolved_shape.bounding_rect()]):#fonctionne pas avec letoile
+                               [
+                                   evolved_shape.bounding_rect()]):  # fonctionne pas avec letoile
                 return process_area(evolved_shape) / self.__canvas_area * 10000
             else:
                 return 0
@@ -133,7 +158,8 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         return ProblemDefinition(domains, objective_fonction)
 
     @staticmethod
-    def contains(container: QPolygonF | QRectF, contained: list[QPointF | QRect]) -> bool:
+    def contains(container: QPolygonF | QRectF,
+                 contained: list[QPointF | QRect]) -> bool:
         if isinstance(container, QPolygonF):
             for c in contained:
                 if container.contains_point(c, Qt.OddEvenFill):
@@ -161,10 +187,13 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
     @staticmethod
     def transform_shape(shape: QPolygonF,
                         transformations: NDArray) -> QPolygonF:
-        t = QTransform().translate(transformations[0], transformations[1]).rotate(transformations[2]).scale(transformations[3], transformations[3])
+        t = QTransform().translate(transformations[0],
+                                   transformations[1]).rotate(
+            transformations[2]).scale(transformations[3], transformations[3])
         return t.map(shape)
 
-    def _draw_polygon(self, painter: QPainter, polygon: QPolygonF, temp) -> None:
+    def _draw_polygon(self, painter: QPainter, polygon: QPolygonF,
+                      temp) -> None:
         painter.save()
         if temp:
             painter.translate(painter.device().rect().center())
@@ -181,7 +210,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
             painter.draw_ellipse(obstacle.x(), obstacle.y(),
                                  self._obstacle_length, self._obstacle_length)
         painter.restore()
-    
+
     def draw_bbox(self, painter: QPainter, polygon: QPolygonF):
         painter.save()
         painter.set_pen(Qt.NoPen)
@@ -190,9 +219,6 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         painter.restore()
 
     def _update_from_simulation(self, ga: GeneticAlgorithm | None) -> None:
-
-
-
         image = QImage(QSize(self.__width - 1, self.__height - 1),
                        QImage.Format_ARGB32)
 
@@ -200,17 +226,17 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         painter = QPainter(image)
         painter.set_pen(Qt.NoPen)
 
-        form = self.__current_shape#self.__shapes[self._shape_picker.current_text]
+        form = self.__current_shape
 
         if ga:
-            best = ga._genitors[ga._genitors_fit[0]['index']]
+            best = ga.history.best_solution[0] # meilleur de l'historique
+            # best = ga.population[0] # meilleur de l'époque actuelle
             form = self.transform_shape(form, best)
-            self.draw_bbox(painter, form)#pour debug le bounding box
+            self.draw_bbox(painter, form)  # pour debug le bounding box
             self._draw_polygon(painter, form, 0)
-            #JUSTIN ICI TU DOIS DESSINER LES AUTRES FORMES!
-            #REGARDE LE CODE ON DESSINE JUSTE LE BEST' TU DOIS PULL TOUTES LES TRANSFORMATIONS, ITERER SUR LA LISTE ET DESSINER LE CONTOUR POUR CHAQUES
+            # JUSTIN ICI TU DOIS DESSINER LES AUTRES FORMES!
+            # REGARDE LE CODE ON DESSINE JUSTE LE BEST' TU DOIS PULL TOUTES LES TRANSFORMATIONS, ITERER SUR LA LISTE ET DESSINER LE CONTOUR POUR CHAQUES
         else:
-            #form = self.__shapes[self._shape_picker.current_text]
             self._draw_polygon(painter, form, 1)
             pass
 
