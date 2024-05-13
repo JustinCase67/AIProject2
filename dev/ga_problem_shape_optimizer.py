@@ -25,6 +25,10 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
     _obstacle_length = 5
     Il faudrait des variables de classe, voir QUnknownProblem"""
 
+    _population_solution_pen_color = QColor(128, 128, 128)
+    _population_solution_pen_width = 1.0
+    _population_solution_pen = QPen(_population_solution_pen_color, _population_solution_pen_width)
+
     def __init__(self, width: int = 500, height: int = 250,
                  max_obst: int = 100,
                  parent: QWidget | None = None) -> None:
@@ -193,12 +197,12 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         return t.map(shape)
 
     def _draw_polygon(self, painter: QPainter, polygon: QPolygonF,
-                      temp) -> None:
+                      temp, pen: QPen = Qt.NoPen) -> None:
         painter.save()
         if temp:
             painter.translate(painter.device().rect().center())
-        painter.set_pen(Qt.NoPen)
-        painter.set_brush(self._shape_color)
+        painter.set_pen(pen)
+        painter.set_brush(Qt.NoBrush if pen != Qt.NoPen else self._shape_color)
         painter.draw_polygon(polygon)
         painter.restore()
 
@@ -229,6 +233,12 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         form = self.__current_shape
 
         if ga:
+            # Dessine toute la population sauf la meilleure solution
+            pen = QPen(Qt.black, 2, Qt.DotLine)  # Set the pen to a dashed line
+            for chromosome in ga.population[1:]:  # ga.population[1:] si on ne veut pas dessiner la première car 0 est la meilleure solution
+                rejected_form = self.transform_shape(form, chromosome)
+                self._draw_polygon(painter,rejected_form,0, pen)
+
             best = ga.history.best_solution # meilleur de l'historique
             # best = ga.population[0] # meilleur de l'époque actuelle
             form = self.transform_shape(form, best)
