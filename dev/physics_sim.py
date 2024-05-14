@@ -4,9 +4,9 @@ import math
 class phys_sim:
     @staticmethod
     def time_at_yf(viy,g, yi, yf):
-        vf = (viy**2+2*-g*(yf-yi))**0.5
+        root = ((viy**2) + (2 * g * (yi - yf) ))**0.5
 
-        return (vf + vi) / -g
+        return (viy + root ) / g
 
     @staticmethod
     def position(pi, vi, g, t):
@@ -23,7 +23,7 @@ class phys_sim:
         return vi + a * t
 
     @staticmethod
-    def final_speed_2d(vi, a , t, angle):
+    def final_speed_2d(vi, a, t, angle):
         vix = vi * math.cos(math.radians(angle))
         viy = vi * math.sin(math.radians(angle))
         return phys_sim.final_speed_1d(vix,0,t), phys_sim.final_speed_1d(viy,a,t)
@@ -70,7 +70,7 @@ t = 1.427
 angle = 0
 exploF = 1.5
 exploAngle = 10
-print("time at 0", phys_sim.time_at_yf(0,g,10,0))
+print("time at 0", phys_sim.time_at_yf(0, g, 10, 0))
 coordo = phys_sim.coordo_explo(vi, angle, t, g, 0, 10)
 print(coordo)
 final_speed = phys_sim.final_speed_2d(vi,g, t, angle)
