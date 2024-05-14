@@ -26,28 +26,52 @@ class QBalisticProblem(QSolutionToSolvePanel):
 
     _background_color = QColor(48, 48, 48)
 
-    def __init__(self, width: int = 500, height: int = 250,
+    def __init__(self, width: int = 500, height: int = 250, longeur_bat : int = 20,
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
-
-        #DÉBUT DES PARAMÈTRES--------------------------------------------------------------------------------------------------
-        # Création des widgets de paramétrage et de leur layout
-        self._canvas_value = QLabel(f"{width} x {height}")
-        self._obstacle_scroll_bar, obstacle_layout = create_scroll_int_value(
-            1, 25, 100)  # Passer en paramètre le maximum
+        
+        self._posX = 25
+        self._posY = 25
+        self._nb_batiments = 5
+        self._zone_protege = 20
+        self._width = width
+        self._height = height
+        
+        
+        #self._drone = QRectF(QPointF(0,0), QPointF(0, ))
         
 
-        self._shape_picker = QComboBox()
-        #self._shape_picker.add_items()
-        #self._shape_picker.activated.connect(
-          #  lambda: self._update_from_simulation(None))
+        #DÉBUT DES PARAMÈTRES--------------------------------------------------------------------------------------------------
+        # Création des widgets de paramétrage et de leur layout  
+        self._positionX_scroll_bar, positionX_layout = create_scroll_int_value( 0, self._posX, width)
+        self._positionX_scroll_bar.valueChanged.connect(lambda : self.__set_position(self._positionX_scroll_bar.value, 0))
+        self._positionY_scroll_bar, positionY_layout = create_scroll_int_value(0, self._posY, height)
+        self._positionY_scroll_bar.valueChanged.connect(lambda : self.__set_position(self._positionY_scroll_bar.value, 1))
+
+        self._nb_batiments_scroll_bar, nb_batiments_layout = create_scroll_int_value(1, self._nb_batiments, width/longeur_bat)
+        self._nb_batiments_scroll_bar.valueChanged.connect(self._set_nb_batiments)
+        self._zone_protege_scroll_bar, zone_protege_layout = create_scroll_int_value(0, self._zone_protege, 100 , value_suffix="%")
+        self._zone_protege_scroll_bar.valueChanged.connect(self._set_zone_protege)
+
+        
+        self.__gravity = {'Terre': 9.81 ,
+                         'Mars': 3.71,
+                         'Saturn': 10.44,
+                         'Soleil': 274.00 }
+        
+        self._gravity_picker = QComboBox()
+        self._gravity_picker.add_items(self.__gravity.keys())
+        self._gravity_picker.activated.connect(  lambda: self._update_from_simulation(None))
         #On doit faire le connect du Combox
 
         param_group_box = QGroupBox('Parameters')
         param_layout = QFormLayout(param_group_box)
-        param_layout.add_row('Canvas size', self._canvas_value)
-        param_layout.add_row('Obstacle count', obstacle_layout)
-        param_layout.add_row('Shape', self._shape_picker)
+        #param_layout.add_row('Obstacle count', obstacle_layout)
+        param_layout.add_row ("Position Initiale X", positionX_layout)
+        param_layout.add_row ("Position Initiale Y", positionY_layout)
+        param_layout.add_row ("Nombre de Batîments", nb_batiments_layout)
+        param_layout.add_row ("Nombre de Zone Protégée", zone_protege_layout)
+        param_layout.add_row('Gravity', self._gravity_picker)
         param_group_box.size_policy = QSizePolicy(QSizePolicy.Preferred,QSizePolicy.Maximum)
 
         #FIN DES PARAMÈTRES-----------------------------------------------------------------------------------------------------
@@ -59,7 +83,33 @@ class QBalisticProblem(QSolutionToSolvePanel):
         main_layout.add_widget(param_group_box)
         main_layout.add_widget(self._visualization_widget)
 
+    def _draw_rectangle(self, painter: QPainter, rectangle: QRectF, pen: QPen = Qt.NoPen):
+        painter.save()
+        painter.set_pen(pen)
+        painter.set_brush(Qt.white)
+        painter.draw_rect(rectangle)
+        painter.restore()
 
+
+    @Slot()
+    def __set_position(self,value, axis):
+        if axis==0 :
+            self._posX = value
+        else : 
+            self._posY = value
+            
+        self._update_from_simulation(None)
+        
+    @Slot()
+    def _set_nb_batiments(self,value):
+        self._nb_batiments = value
+        self._update_from_simulation(None)
+        
+    @Slot()
+    def _set_zone_protege(self, value):
+        self._zone_protege = round((value/100)*self._nb_batiments)#IL EST POSSIBLE QUE ÇA NOUS DONNE 0 CIBLE
+        self._update_from_simulation(None)
+        
     @property
     def name(self) -> str:
         return 'Balistic Cost Optimizer'
@@ -75,27 +125,13 @@ class QBalisticProblem(QSolutionToSolvePanel):
     #PROBLEM DEFINITION WITH OBJECTIVE FUNCTION-------------------------------------------------------------------------------------------------
     @property
     def problem_definition(self) -> ProblemDefinition:
-        dimensions_values = [[0, self.__width],
-                             [0, self.__height],
-                             [0, 360],
-                             [0, math.sqrt(((
-                                                self.__canvas_area) / process_area(
-                                 self.__current_shape)))]]
-        domains = Domains(np.array(dimensions_values), (
-            'Translation en X', 'Translation en Y', 'Rotation', 'Homéothétie'))
+       
+          
 
         def objective_fonction(chromosome: NDArray) -> float:
-            evolved_shape = self.transform_shape(self.__current_shape, chromosome)
+           return 0
 
-            if self.contains(evolved_shape, self.__points_list):
-                return 0
-            elif self.contains(QRectF(0, 0, self.__width, self.__height),
-                               [evolved_shape.bounding_rect()]):#fonctionne pas avec letoile
-                return (process_area(evolved_shape) / self.__canvas_area) * 100
-            else:
-                return 0
-
-        return ProblemDefinition(domains, objective_fonction)
+        return ProblemDefinition([],objective_fonction)
 
     @property
     def default_parameters(self) -> Parameters:
@@ -104,14 +140,14 @@ class QBalisticProblem(QSolutionToSolvePanel):
 
 
     def _update_from_simulation(self, ga: GeneticAlgorithm | None) -> None:
-        image = QImage(QSize(self.__width - 1, self.__height - 1),
+        image = QImage(QSize(self._width - 1, self._height - 1),
                        QImage.Format_ARGB32)
 
-        image.fill(self._background_color)
+        image.fill(QBalisticProblem._background_color)
         painter = QPainter(image)
         painter.set_pen(Qt.NoPen)
 
-        form = self.__shapes[self._shape_picker.current_text]
+        #form = self.__shapes[self._shape_picker.current_text]
 
         if ga:
             best = ga._genitors[ga._genitors_fit[0]['index']]
@@ -126,9 +162,14 @@ class QBalisticProblem(QSolutionToSolvePanel):
             #REGARDE LE CODE ON DESSINE JUSTE LE BEST' TU DOIS PULL TOUTES LES TRANSFORMATIONS, ITERER SUR LA LISTE ET DESSINER LE CONTOUR POUR CHAQUES
         else:
             #form = self.__shapes[self._shape_picker.current_text]
-            self._draw_polygon(painter, form, 1)
+            pen = QPen(Qt.white)
+            pen.set_width(10)
+            painter.set_pen(pen)
+            drone = QPointF(self._posX, self._posY)
+            painter.draw_point(drone)
+            
+            
             pass
 
-        self._draw_obstacles(painter)
         painter.end()
         self._visualization_widget.image = image
