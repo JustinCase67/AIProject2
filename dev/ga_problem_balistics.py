@@ -30,6 +30,8 @@ class QBalisticProblem(QSolutionToSolvePanel):
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
+        self._trajectoires
+        
         #DÉBUT DES PARAMÈTRES--------------------------------------------------------------------------------------------------
         # Création des widgets de paramétrage et de leur layout
         self._canvas_value = QLabel(f"{width} x {height}")
@@ -66,7 +68,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
 
     @property
     def summary(self) -> str:
-        return '''Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus vitae neque sit amet odio dictum consectetur. Curabitur in eros nec nunc consectetur posuere nec nec.'''
+        return '''Un drone vole au dessus de batiments à détruire et doit lancer un projectile de type «Arme à sous-munitions» pour maximiser le nombre de cibles atteintes sans toucher aux batiments de type protégés (tel que des hospital de campagne), le tout en utilisant les plus petites forces de propulsions. '''
 
     @property
     def description(self) -> str:
@@ -75,25 +77,35 @@ class QBalisticProblem(QSolutionToSolvePanel):
     #PROBLEM DEFINITION WITH OBJECTIVE FUNCTION-------------------------------------------------------------------------------------------------
     @property
     def problem_definition(self) -> ProblemDefinition:
-        dimensions_values = [[0, self.__width],
-                             [0, self.__height],
-                             [0, 360],
-                             [0, math.sqrt(((
-                                                self.__canvas_area) / process_area(
-                                 self.__current_shape)))]]
+        dimensions_values = [[0, 150],   #Force impulsion initiale (valeur arbitraire)
+                             [0, 360],  #angle de propulsion (en degre)
+                             [0, 100],  #% de la trajectoire parcouru avant la detonation (donne le temps de detonation)
+                             [0, 50],   #La force d'explosion est un % de la propulsion initiale (valeur arbitraire)
+                             [0, 360]   #angle de separation du spray
+                             ]
         domains = Domains(np.array(dimensions_values), (
-            'Translation en X', 'Translation en Y', 'Rotation', 'Homéothétie'))
+            'Force de propulsion', 'Angle de propulsion', 'Trajectoire parcouru avant la detonation', 'Force de separation', 'angle de separation'))
 
         def objective_fonction(chromosome: NDArray) -> float:
-            evolved_shape = self.transform_shape(self.__current_shape, chromosome)
-
-            if self.contains(evolved_shape, self.__points_list):
+            
+            #gardeer ces commentaires
+            #chromosome[2] = (phys_sim.time_at_yf(chromosome[0]*math.sin(math.radians(chromosome[1])), self._gravity, self._positionY_scroll_bar.value, 0) * chromosome[2]/100.0)
+            #chromosome[3] = chromosome[0] * chromosome[3]/100.0
+            chromosome = self.chromosomes_traduction(chromosome)
+            
+            #trajectoire = phys_sim.get_final_coordo(chromosome)
+            
+            nb_target = 0
+            nb_war_crimes = 0
+            for impact in trajectoire[1]:
+                if self.is_pos_in_ranges(impact[-1][0], self._proteges):
+                    nb_war_crimes += 1
+                elif self.is_pos_in_ranges(impact[-1][0], self._batiments):
+                    nb_target += 1
+            if nb_target == 0 or nb_war_crimes > 0:
                 return 0
-            elif self.contains(QRectF(0, 0, self.__width, self.__height),
-                               [evolved_shape.bounding_rect()]):#fonctionne pas avec letoile
-                return (process_area(evolved_shape) / self.__canvas_area) * 100
-            else:
-                return 0
+            else:#optimisation cas 1 target et 1 warcrime donner +1000-999pts?
+                return 1000 * nb_target + ((domains.ranges[0][1] + domains.ranges[3][1]/100.0 * domains.ranges[0][1]) - chromosome[0] + chromosome[3])
 
         return ProblemDefinition(domains, objective_fonction)
 
@@ -102,6 +114,17 @@ class QBalisticProblem(QSolutionToSolvePanel):
         pass
         #return engine_parameters
 
+    def chromosomes_traduction(chromosome: NDArray):
+        #chromosome[:, 2] = (phys_sim.time_at_yf(chromosome[:, 0]*math.sin(math.radians(chromosome[:, 1])), self._gravity, self._positionY_scroll_bar.value, 0) * chromosome[:, 2]/100.0)
+        chromosome[:, 3] = chromosome[:, 0] * chromosome[:, 3]/100.0
+        return chromosome
+
+    def is_pos_in_ranges(posX, batiments):
+        temp = False
+        for batiment in batiments:
+            if batiment[0] <= posX <= batiment[1]:
+                temp = True
+        return temp
 
     def _update_from_simulation(self, ga: GeneticAlgorithm | None) -> None:
         image = QImage(QSize(self.__width - 1, self.__height - 1),
