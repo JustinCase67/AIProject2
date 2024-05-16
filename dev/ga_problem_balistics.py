@@ -24,7 +24,7 @@ from uqtwidgets import create_scroll_real_value, QImageViewer, \
 
 class QBalisticProblem(QSolutionToSolvePanel):
     _background_color = QColor(48, 48, 48)
-    _building_height = 8
+    _building_height = 10
 
     _drone_color = QColor(Qt.white)
     _drone_width = 30
@@ -55,8 +55,10 @@ class QBalisticProblem(QSolutionToSolvePanel):
         self._nb_batiments = 5 # valeur par défaut
         self._nb_proteges = 2 # valeur par défaut
         # VALEURS TEMPORAIRES POUR LA VISUALISATION
-        self._batiments = [[0, 40], [40, 80], [160, 200], [440, 480]]
-        self._proteges = [[40, 80], [440, 480]]
+        #self._batiments = [[0, 40], [40, 80], [160, 200], [440, 480]]
+        #self._proteges = [[40, 80], [440, 480]]
+        self._batiments = []
+        self._proteges = []
         self._trajectoires = [[[162, 75], [163, 76], [164, 77], [165, 78], [166, 79], [167, 80], [168, 81], [171, 84], [175, 88]],
                               [[162, 75], [163, 74], [164, 73], [165, 72], [166, 71], [167, 70], [168, 69], [169, 68], [174, 83]]]
         self._best = [[[162, 75], [163, 74], [164, 73], [165, 72], [166, 71], [167, 70], [168, 69], [169, 68], [174, 83]]]
@@ -66,13 +68,15 @@ class QBalisticProblem(QSolutionToSolvePanel):
         self._height = height
         self._longueur_batiment = longueur_bat
         self._gravity = 9.81 # valeur par défaut
+        self.generate_batiments()
+
 
 
         #DÉBUT DES PARAMÈTRES--------------------------------------------------------------------------------------------------
         # Création des widgets de paramétrage et de leur layout  
-        self._positionX_scroll_bar, positionX_layout = create_scroll_int_value( 0, self._posX, width)
+        self._positionX_scroll_bar, positionX_layout = create_scroll_int_value( 0, self._posX, width-self._drone_width)
         self._positionX_scroll_bar.valueChanged.connect(lambda : self.__set_position(self._positionX_scroll_bar.value, 0))
-        self._positionY_scroll_bar, positionY_layout = create_scroll_int_value(0, self._posY, height)
+        self._positionY_scroll_bar, positionY_layout = create_scroll_int_value(0, self._posY, height-(self._drone_height+self._building_height))
         self._positionY_scroll_bar.valueChanged.connect(lambda : self.__set_position(self._positionY_scroll_bar.value, 1))
 
         self._nb_batiments_scroll_bar, nb_batiments_layout = create_scroll_int_value(1, self._nb_batiments, width/longueur_bat)
@@ -124,12 +128,14 @@ class QBalisticProblem(QSolutionToSolvePanel):
     def _set_nb_batiments(self,value):
         self._nb_batiments = value
         self._zone_protege_scroll_bar.set_range(0, int(100*((value-1)/value)))
+        self.generate_batiments()
         self._update_from_simulation(None)
 
 
     @Slot()
     def _set_zone_protege(self, value):
         self._nb_proteges = round((value/100)*self._nb_batiments)#IL EST POSSIBLE QUE ÇA NOUS DONNE 0 CIBLE
+        self.generate_batiments()
         self._update_from_simulation(None)
 
     @property
@@ -171,14 +177,15 @@ class QBalisticProblem(QSolutionToSolvePanel):
     def generate_batiments(self):
         #segment_width = self._longueur_batiment
         #num_batiments = self._nb_batiments
-        segments = [((x, 0), (x + self._longueur_batiment, 0)) for x in range(0, 500, self._longueur_batiment)]
+        segments = [(x, x + self._longueur_batiment) for x in range(0, 500, self._longueur_batiment)]
+        #segments = [((x, 0), (x + self._longueur_batiment, 0)) for x in range(0, 500, self._longueur_batiment)]
         #num_protected_zones = int(num_batiments * self._zone_protege / 100)
         random.shuffle(segments)
         liste_zones_protege = segments[:self._nb_proteges]
         liste_batiments = segments[:self._nb_batiments]
 
         self._batiments, self._proctected_zones = liste_batiments, liste_zones_protege
-        self._update_from_simulation()
+        #self._update_from_simulation()
 
 
     def _update_from_simulation(self, ga: GeneticAlgorithm | None) -> None:
@@ -194,7 +201,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
         QBalisticProblem._draw_rectangle(painter, drone, 0, brush=self._drone_brush)
         for b in self._batiments:
             rect = QRectF(b[0], self._height - self._building_height, self._longueur_batiment, self._building_height)
-            if b in self._proteges:
+            if b in self._proctected_zones:
                 QBalisticProblem._draw_rectangle(painter, rect, brush=QBalisticProblem._protected_brush)
             else:
                 QBalisticProblem._draw_rectangle(painter, rect, brush=QBalisticProblem._target_brush)

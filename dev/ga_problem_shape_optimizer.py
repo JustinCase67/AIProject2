@@ -57,20 +57,11 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
                                                 QPointF((5/6),(5/6)) - self.__u_center, 
                                                 QPointF((1/6),(5/6)) - self.__u_center, 
                                                 QPointF((1/6),0) - self.__u_center)),
-                         
-                         'Test U': QPolygonF((QPointF(0,0),
-                                                QPointF(0, 150),
-                                                QPointF(150, 150), 
-                                                QPointF(150,0), 
-                                                QPointF(125,0), 
-                                                QPointF((125),(125)), 
-                                                QPointF((25),(125)), 
-                                                QPointF((25),0)))}
+                         }
 
-        # Création des widgets et du layout global
+        #Création des widgets et du layout global
         self._canvas_value = QLabel(f"{self.__width} x {self.__height}")
-        self._obstacle_scroll_bar, obstacle_layout = create_scroll_int_value(
-            1, 25, max_obst)
+        self._obstacle_scroll_bar, obstacle_layout = create_scroll_int_value(1, 25, max_obst)
         self._obstacle_scroll_bar.valueChanged.connect(
             self.__set_obstacle_count)
 
