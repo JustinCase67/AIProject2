@@ -228,10 +228,8 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
             best = ga.history.best_solution # meilleur de l'historique
             # best = ga.population[0] # meilleur de l'époque actuelle
             form = self.transform_shape(form, best)
-            self.draw_bbox(painter, form)  # pour debug le bounding box
+            #self.draw_bbox(painter, form)  # pour debug le bounding box
             self._draw_polygon(painter, form, 0)
-            # JUSTIN ICI TU DOIS DESSINER LES AUTRES FORMES!
-            # REGARDE LE CODE ON DESSINE JUSTE LE BEST' TU DOIS PULL TOUTES LES TRANSFORMATIONS, ITERER SUR LA LISTE ET DESSINER LE CONTOUR POUR CHAQUES
         else:
             self._draw_polygon(painter, form, 1)            
             pass

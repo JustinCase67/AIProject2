@@ -207,6 +207,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
                 QBalisticProblem._draw_rectangle(painter, rect, brush=QBalisticProblem._target_brush)
 
         # EST TEMPORAIREMENT ICI POUR LA VISUALISATION
+        
         for trajectoire in self._trajectoires:
             if trajectoire in self._best:
                 painter.set_pen(QBalisticProblem._best_pen)
