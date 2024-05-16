@@ -7,6 +7,7 @@ from ga_strategy_genes_mutation import GenesMutationStrategy
 from ga_problem_unknown_number import QUnknownNumberProblemPanel
 from ga_problem_open_box import QOpenBoxProblemPanel
 from ga_problem_shape_optimizer import QShapeOptimizerProblemPanel
+from ga_problem_balistics import QBalisticProblem
 
 
 from PySide6.QtWidgets import QApplication
@@ -37,6 +38,7 @@ def main():
     ga_app.add_solution_panel(QUnknownNumberProblemPanel(-1000.0, 0.0, 1000.0))     # note : on passe une instance, pas une classe
     ga_app.add_solution_panel(QOpenBoxProblemPanel())                               # note : on passe une instance, pas une classe
     ga_app.add_solution_panel(QShapeOptimizerProblemPanel())
+    ga_app.add_solution_panel(QBalisticProblem())
 
     # On rajoute le panel ici
     #ga_app.add_solution_panel(QGeometricProblem) 

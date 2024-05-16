@@ -40,35 +40,32 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self.__points_list = []
         self.__current_shape = None
 
-        self.__triangle_center = QPointF(43.334, 75)
-        self.__etoile_center = QPointF(75, 24.368)
-        self.__shapes = {'Triangle': QPolygonF((QPointF(0,
-                                                        0) - self.__triangle_center,
-                                                QPointF(0,
-                                                        150) - self.__triangle_center,
-                                                QPointF(130,
-                                                        75) - self.__triangle_center)),
-                         'Etoile': QPolygonF((QPointF(0,
-                                                      0) - self.__etoile_center,
-                                              QPointF(57.292,
-                                                      0) - self.__etoile_center,
-                                              QPointF(75,
-                                                      -54.492) - self.__etoile_center,
-                                              QPointF(92.708,
-                                                      0) - self.__etoile_center,
-                                              QPointF(150,
-                                                      0) - self.__etoile_center,
-                                              QPointF(103.65,
-                                                      33.675) - self.__etoile_center,
-                                              QPointF(121.354,
-                                                      88.163) - self.__etoile_center,
-                                              QPointF(75,
-                                                      54.495) - self.__etoile_center,
-                                              QPointF(28.646,
-                                                      88.163) - self.__etoile_center,
-                                              QPointF(46.35,
-                                                      33.675) - self.__etoile_center)),
-                         'Shape3': []}
+        self.__triangle_center =QPointF(0.5, -0.334)
+        self.__etoile_center = QPointF(0.5, -0.5)
+        self.__u_center = QPointF(0.5, (52/125) )
+        self.__shapes = {'Triangle': QPolygonF((QPointF(0, 0) - self.__triangle_center, 
+                                                QPointF(0.5, -1) - self.__triangle_center, 
+                                                QPointF(1, 0) - self.__triangle_center)),
+                         'Etoile': QPolygonF((QPointF(0, -0.5) - self.__etoile_center, QPointF(0.4, -0.4) - self.__etoile_center, QPointF(0.5, 0) - self.__etoile_center, 
+                                              QPointF(0.6, -0.4) - self.__etoile_center, QPointF(1, -0.5) - self.__etoile_center, QPointF(0.6, -0.6) - self.__etoile_center, 
+                                              QPointF(0.5, -1) - self.__etoile_center, QPointF(0.4, -0.6) - self.__etoile_center)),
+                         'The U': QPolygonF((QPointF(0,0) - self.__u_center,
+                                                QPointF(0, 1) - self.__u_center ,
+                                                QPointF(1, 1) - self.__u_center, 
+                                                QPointF(1,0) - self.__u_center, 
+                                                QPointF((5/6),0) - self.__u_center, 
+                                                QPointF((5/6),(5/6)) - self.__u_center, 
+                                                QPointF((1/6),(5/6)) - self.__u_center, 
+                                                QPointF((1/6),0) - self.__u_center)),
+                         
+                         'Test U': QPolygonF((QPointF(0,0),
+                                                QPointF(0, 150),
+                                                QPointF(150, 150), 
+                                                QPointF(150,0), 
+                                                QPointF(125,0), 
+                                                QPointF((125),(125)), 
+                                                QPointF((25),(125)), 
+                                                QPointF((25),0)))}
 
         # Création des widgets et du layout global
         self._canvas_value = QLabel(f"{self.__width} x {self.__height}")
@@ -140,9 +137,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         dimensions_values = [[0, self.__width],
                              [0, self.__height],
                              [0, 360],
-                             [0, math.sqrt(((
-                                                self.__canvas_area) / process_area(
-                                 self.__current_shape)))]]
+                             [1.0, min(self.__width, self.__height)]]
         domains = Domains(np.array(dimensions_values), (
             'Translation en X', 'Translation en Y', 'Rotation', 'Homéothétie'))
 
@@ -153,8 +148,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
             if self.contains(evolved_shape, self.__points_list):
                 return 0
             elif self.contains(QRectF(0, 0, self.__width, self.__height),
-                               [
-                                   evolved_shape.bounding_rect()]):  # fonctionne pas avec letoile
+                               [evolved_shape.bounding_rect()]):
                 return process_area(evolved_shape) / self.__canvas_area * 10000
             else:
                 return 0
@@ -201,6 +195,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         painter.save()
         if temp:
             painter.translate(painter.device().rect().center())
+            painter.scale(125,125)
         painter.set_pen(pen)
         painter.set_brush(Qt.NoBrush if pen != Qt.NoPen else self._shape_color)
         painter.draw_polygon(polygon)
@@ -234,7 +229,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
 
         if ga:
             # Dessine toute la population sauf la meilleure solution
-            pen = QPen(Qt.black, 2, Qt.DotLine)  # Set the pen to a dashed line
+            pen = QPen(Qt.white, 2, Qt.DotLine)  # Set the pen to a dashed line
             for chromosome in ga.population[1:]:  # ga.population[1:] si on ne veut pas dessiner la première car 0 est la meilleure solution
                 rejected_form = self.transform_shape(form, chromosome)
                 self._draw_polygon(painter,rejected_form,0, pen)
@@ -242,12 +237,10 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
             best = ga.history.best_solution # meilleur de l'historique
             # best = ga.population[0] # meilleur de l'époque actuelle
             form = self.transform_shape(form, best)
-            self.draw_bbox(painter, form)  # pour debug le bounding box
+            #self.draw_bbox(painter, form)  # pour debug le bounding box
             self._draw_polygon(painter, form, 0)
-            # JUSTIN ICI TU DOIS DESSINER LES AUTRES FORMES!
-            # REGARDE LE CODE ON DESSINE JUSTE LE BEST' TU DOIS PULL TOUTES LES TRANSFORMATIONS, ITERER SUR LA LISTE ET DESSINER LE CONTOUR POUR CHAQUES
         else:
-            self._draw_polygon(painter, form, 1)
+            self._draw_polygon(painter, form, 1)            
             pass
 
         self._draw_obstacles(painter)
