@@ -5,8 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a1c5d4cc-aeea-41ac-b7cb-382105528596" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ga_problem_balistics.py" beforeDir="false" afterPath="$PROJECT_DIR$/ga_problem_balistics.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -44,8 +42,8 @@
     "Python.gamain.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "MS",
-    "last_opened_file_path": "E:/School/AI/AIProject2/dev",
+    "git-widget-placeholder": "BP2",
+    "last_opened_file_path": "/Users/marie-soleil/Documents/Collège/c52_ia1/projet2/untitled folder/AIProject2/dev",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -125,6 +123,7 @@
       <option name="presentableId" value="Default" />
       <updated>1715636142918</updated>
       <workItem from="1715725159814" duration="13797000" />
+      <workItem from="1715914304729" duration="31000" />
     </task>
     <servers />
   </component>
