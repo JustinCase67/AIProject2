@@ -47,8 +47,11 @@ class QBalisticProblem(QSolutionToSolvePanel):
     _other_width = 5.  # combiner en une variable si reste identique
     _other_pen = QPen(_other_color, _other_width)
 
+    _fake_pen = QPen(QColor(Qt.red), _other_width)
+
     def __init__(self, width: int = 500, height: int = 250,
                  longueur_bat: int = 20,
+                 cible_finale_y: int = 0,
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
@@ -81,6 +84,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
         self._longueur_batiment = longueur_bat
         self._gravity = 9.81
         self.generate_batiments()
+        self._cible_finale_y = cible_finale_y
 
         # DÉBUT DES PARAMÈTRES--------------------------------------------------------------------------------------------------
         # Création des widgets de paramétrage et de leur layout
@@ -171,8 +175,34 @@ class QBalisticProblem(QSolutionToSolvePanel):
         return '''Un drone vole au dessus de batiments à détruire et doit lancer un projectile de type «Arme à sous-munitions» pour maximiser le nombre de cibles atteintes sans toucher aux batiments de type protégés (tel que des hospital de campagne), le tout en utilisant les plus petites forces de propulsions. '''
 
     @property
-    def description(self) -> str:
-        return '''Description, voir modèle.'''
+    def description(self) -> str:  # note : override
+        """Description du problème."""
+        return '''On cherche à obtenir une valeur .
+
+    Données initiales du problème : 
+        - Position Initiale en X déterminée par une barre défilement
+        - Position Initiale en Y déterminée par une barre défilement
+        - Nombre de bâtiments totaux déterminée par une barre défilement
+        - Nombre de zones protégées en pourcentage du nombre de bâtiments déterminée par une barre de défilement
+        - La gravité déterminée par une liste déroulante contenant des endroits liées à leur gravité par exemple la terre : 9.81
+        - Position finale en y recherchée directement déterminée dans le constructeur
+    Dimension du problème : 
+        - d = 5
+        - d1 = [0., 150.] ce sont des valeurs d'un vecteur de vitesse intial
+        - d2 = [0., 100.] c'est la valeur en pourcentage de la trajectoire parcourue avant la détonation
+        - d3 = [0., 180.] c'est l'angle de propulstion initial en degrée
+        - d4 = [0., 50.] c'est le pourcentage de la force d'explosion en relation avec le vecteur de vitesse intial
+        - d5 = [0., 180.] c'est l'angle de séparation du cluster d'objet
+    Étape Intermédiaire pour le fitness(_translate_from_chromosome)  :
+        - Les valeurs des chromosomes d2 et d4 sont transformées en la valeur correspondante du pourcentage reçu
+        - Les valeurs des chromosomes et des deux nouvelles valeurs calculées avec le pourcentage de d2 et d4 sont ensuite mise dans une fonction qui simulera la trajectoire
+        de la position initiale jusqu'a l'explosion et puis les trajectoires resultantes des nouveaux projectiles jusqu'au point en y posé.
+        - ces trois nouvelles coordonnées vont ensuite être utilisées pour la fonction objective
+    Fonction objective :
+        - si la valeur recherchée est hors de la plage de recherche, la fitness est de 0 
+        - Si un des projectiles touche une zone protégée le score sera de zéro
+        - On recherche la plus grande valeur qui est composée du nombre de cible atteinte * 1000 à laquelle on ajoute le maximum
+    '''
 
     # PROBLEM DEFINITION WITH OBJECTIVE FUNCTION-------------------------------------------------------------------------------------------------
     @property
@@ -181,14 +211,13 @@ class QBalisticProblem(QSolutionToSolvePanel):
                              # Force impulsion initiale (valeur arbitraire)
                              [0., 100.],
                              # % de la trajectoire parcouru avant la detonation (donne le temps de detonation
-                             [0., 360.],  # angle de propulsion (en degre)
+                             [0., 180.],  # angle de propulsion (en degre)
                              [0., 50.],
                              # La force d'explosion est un % de la propulsion initiale (valeur arbitraire)
                              [0., 180.]]  # angle de separation du spray
 
-        domains = Domains(np.array(dimensions_values), (
-            'Force de propulsion', 'Angle de propulsion',
-            'Trajectoire parcouru avant la detonation', 'Force de separation',
+        domains = Domains(np.array(dimensions_values), ('Force de propulsion', 'Trajectoire parcouru avant la detonation', 'Angle de propulsion',
+             "Force de separation en pourcentage l'initiale,",
             'angle de separation'))
 
         def objective_fonction(chromosome: NDArray) -> float:
@@ -204,7 +233,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
                                                                     angle_init,
                                                                     self._gravity,
                                                                     force_split,
-                                                                    angle_split, 3, 0)
+                                                                    angle_split, 3, self._cible_finale_y)
             nb_target = 0
             nb_war_crimes = 0
             temp = self._batiments.copy()
@@ -302,28 +331,35 @@ class QBalisticProblem(QSolutionToSolvePanel):
             angle_init = ga.history.best_solution[2]
             force_split = force_init * ga.history.best_solution[3] / 100.
             angle_split = ga.history.best_solution[4]
-            coordo = (self._posX, 250 -self._posY)
+            coordo = (self._posX, 250 - self._posY)
             traj = PhysSim.get_all_points_from_start_data(force_init,
                                                           temps_split, coordo,
                                                           angle_init,
                                                           self._gravity,
                                                           force_split,
-                                                          angle_split, 3, 0, 1)
+                                                          angle_split, 3, self._cible_finale_y, 1)
             # NE DESSINE QUE LE PRINCIPAL ET UNE DES SÉPARATIONS
             path = QPainterPath()
             path2 = QPainterPath()
+            path3 = QPainterPath()
             path.move_to(QPointF(traj[0][0][0], 250 - traj[0][0][1]))
             for p in traj[0]:
-                path.line_to(QPointF(p[0], 250 -p[1]))
-            for i in traj[1]:
-                path2.move_to(QPointF(traj[0][-1][0], 250 - traj[0][-1][1]))
-                for index, p in enumerate(i):
-                    path2.line_to(QPointF(p[0], 250 - p[1]))
-            #path.line_to(QPointF(traj[1][0][-1][0], 250-traj[1][0][-1][1]))
+                path.line_to(QPointF(p[0], 250 - p[1]))
+            for i, traj in enumerate(traj[1]):
+                if i == 0:
+                    path3.move_to(QPointF(traj[0][0], 250 - traj[0][1]))
+                    for index, p in enumerate(traj):
+                        path3.line_to(QPointF(p[0], 250 - p[1]))
+                else:
+                    path2.move_to(QPointF(traj[0][0], 250 - traj[0][1]))
+                    for index, p in enumerate(traj):
+                        path2.line_to(QPointF(p[0], 250 - p[1]))
+            # path.line_to(QPointF(traj[1][0][-1][0], 250-traj[1][0][-1][1]))
             painter.draw_path(path)
             painter.set_pen(QBalisticProblem._other_pen)
             painter.draw_path(path2)
-
+            painter.set_pen(QBalisticProblem._fake_pen)
+            painter.draw_path(path3)
             '''
             for trajectoire in self._trajectoires:
                 if trajectoire in self._best:
