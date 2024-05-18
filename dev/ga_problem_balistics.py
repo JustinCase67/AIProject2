@@ -79,7 +79,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
         self._width = width
         self._height = height
         self._longueur_batiment = longueur_bat
-        self._gravity = -9.81  # ESSAI GRAVITÉ NÉGATIVE.
+        self._gravity = 9.81
         self.generate_batiments()
 
         # DÉBUT DES PARAMÈTRES--------------------------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
         self._zone_protege_scroll_bar.valueChanged.connect(
             self._set_zone_protege)
 
-        self.__gravity_values = {'Terre': -9.81,
+        self.__gravity_values = {'Terre': 9.81,
                                  'Mars': 3.71,
                                  'Saturn': 10.44,
                                  'Soleil': 274.00}
@@ -177,14 +177,14 @@ class QBalisticProblem(QSolutionToSolvePanel):
     # PROBLEM DEFINITION WITH OBJECTIVE FUNCTION-------------------------------------------------------------------------------------------------
     @property
     def problem_definition(self) -> ProblemDefinition:
-        dimensions_values = [[0., 20.],
+        dimensions_values = [[0., 150.],
                              # Force impulsion initiale (valeur arbitraire)
                              [0., 100.],
                              # % de la trajectoire parcouru avant la detonation (donne le temps de detonation
                              [0., 360.],  # angle de propulsion (en degre)
                              [0., 50.],
                              # La force d'explosion est un % de la propulsion initiale (valeur arbitraire)
-                             [0., 360.]]  # angle de separation du spray
+                             [0., 180.]]  # angle de separation du spray
 
         domains = Domains(np.array(dimensions_values), (
             'Force de propulsion', 'Angle de propulsion',
@@ -193,12 +193,12 @@ class QBalisticProblem(QSolutionToSolvePanel):
 
         def objective_fonction(chromosome: NDArray) -> float:
             force_init = chromosome[0]
-            temps_split = -chromosome[0] * math.sin(math.radians(chromosome[1]))
+            temps_split = (PhysSim.time_at_yf(chromosome[0]* math.sin(math.radians(chromosome[2])), self._gravity, self._positionY_scroll_bar.value, 0) * chromosome[1]/100.0)
             angle_init = chromosome[2]
-            force_split = force_init * chromosome[3]
+            force_split = force_init * chromosome[3] / 100.
             angle_split = chromosome[4]
-            coordo = (self._posX, self._posY)
-            impacts = PhysSim.get_final_coordinates_from_start_data(-force_init,
+            coordo = (self._posX, 250 - self._posY)
+            impacts = PhysSim.get_final_coordinates_from_start_data(force_init,
                                                                     temps_split,
                                                                     coordo,
                                                                     angle_init,
@@ -207,17 +207,29 @@ class QBalisticProblem(QSolutionToSolvePanel):
                                                                     angle_split, 3, 0)
             nb_target = 0
             nb_war_crimes = 0
+            temp = self._batiments.copy()
             for impact in impacts[1]:
                 if self.is_pos_in_ranges(impact[0], self._proteges):
                     nb_war_crimes += 1
-                elif self.is_pos_in_ranges(impact[0], self._batiments):
+                elif self.is_pos_in_ranges(impact[0], temp):
                     nb_target += 1
+                    temp.pop(self.index_batiment(impact[0], temp))
             if nb_target == 0 or nb_war_crimes > 0:
                 return 0
             else:
-                return (nb_target * 1000 / (force_init + force_split) * 100)
+                #return (nb_target * 10000 / (force_init + force_split) * 100) + 1
+                return (nb_target * 1000) + ((150 + (150 * 50 / 100)) - (
+                            force_init + force_split))
 
         return ProblemDefinition(domains, objective_fonction)
+
+    @staticmethod
+    def index_batiment(posX, temp):
+        i = 0
+        for batiment in temp:
+            if batiment[0] <= posX <= batiment[1]:
+                return i
+            i += 1
 
     @property
     def default_parameters(self) -> Parameters:
@@ -260,7 +272,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
         liste_zones_protege = segments[:self._nb_proteges]
         liste_batiments = segments[:self._nb_batiments]
 
-        self._batiments, self._proctected_zones = liste_batiments, liste_zones_protege
+        self._batiments, self._proteges = liste_batiments, liste_zones_protege
         # self._update_from_simulation()
 
     def _update_from_simulation(self, ga: GeneticAlgorithm | None) -> None:
@@ -278,7 +290,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
                                          brush=self._drone_brush)
         for b in self._batiments:
             rect = QRectF(b[0], self._height - self._building_height, self._longueur_batiment, self._building_height)
-            if b in self._proctected_zones:
+            if b in self._proteges:
                 QBalisticProblem._draw_rectangle(painter, rect, brush=QBalisticProblem._protected_brush)
             else:
                 QBalisticProblem._draw_rectangle(painter, rect, brush=QBalisticProblem._target_brush)
@@ -286,25 +298,31 @@ class QBalisticProblem(QSolutionToSolvePanel):
         if ga:
             painter.set_pen(QBalisticProblem._best_pen)
             force_init = ga.history.best_solution[0]
-            temps_split = ga.history.best_solution[0] * math.sin(
-                math.radians(ga.history.best_solution[1]))
+            temps_split = (PhysSim.time_at_yf(ga.history.best_solution[0]* math.sin(math.radians(ga.history.best_solution[2])), self._gravity, self._positionY_scroll_bar.value, 0) * ga.history.best_solution[1]/100.0)
             angle_init = ga.history.best_solution[2]
-            force_split = force_init * ga.history.best_solution[3]
+            force_split = force_init * ga.history.best_solution[3] / 100.
             angle_split = ga.history.best_solution[4]
-            coordo = (self._posX, self._posY)
+            coordo = (self._posX, 250 -self._posY)
             traj = PhysSim.get_all_points_from_start_data(force_init,
                                                           temps_split, coordo,
                                                           angle_init,
                                                           self._gravity,
                                                           force_split,
-                                                          angle_split, 3, 250, 1)
+                                                          angle_split, 3, 0, 1)
             # NE DESSINE QUE LE PRINCIPAL ET UNE DES SÉPARATIONS
             path = QPainterPath()
-            path.move_to(QPointF(traj[0][0][0], traj[0][0][1]))
-            path.line_to(QPointF(traj[0][-1][0], traj[0][-1][1]))
-            path.line_to(QPointF(traj[0][-1][0], traj[0][-1][1]))
-            path.line_to(QPointF(traj[1][0][-1][0], traj[1][0][-1][1]))
+            path2 = QPainterPath()
+            path.move_to(QPointF(traj[0][0][0], 250 - traj[0][0][1]))
+            for p in traj[0]:
+                path.line_to(QPointF(p[0], 250 -p[1]))
+            for i in traj[1]:
+                path2.move_to(QPointF(traj[0][-1][0], 250 - traj[0][-1][1]))
+                for index, p in enumerate(i):
+                    path2.line_to(QPointF(p[0], 250 - p[1]))
+            #path.line_to(QPointF(traj[1][0][-1][0], 250-traj[1][0][-1][1]))
             painter.draw_path(path)
+            painter.set_pen(QBalisticProblem._other_pen)
+            painter.draw_path(path2)
 
             '''
             for trajectoire in self._trajectoires:
