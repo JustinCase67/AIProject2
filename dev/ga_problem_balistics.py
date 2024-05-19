@@ -44,8 +44,11 @@ class QBalisticProblem(QSolutionToSolvePanel):
     _other_pen = QPen(_other_color, _other_width)
     _other_pen.set_style(Qt.DotLine)
 
+    _fake_pen = QPen(QColor(Qt.red), _other_width)
+
     def __init__(self, width: int = 500, height: int = 250,
                  longueur_bat: int = 20,
+                 cible_finale_y: int = 0,
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
@@ -65,6 +68,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
         self._gravity = 9.81
         self._view = False  # correspond à affichage 'Meilleur seulement'
         self.generate_batiments()
+        self._cible_finale_y = cible_finale_y
 
         # Création des widgets de paramétrage et de leur layout
         self._positionX_scroll_bar, positionX_layout = create_scroll_int_value(
@@ -165,8 +169,34 @@ class QBalisticProblem(QSolutionToSolvePanel):
         return '''Un drone vole au dessus de batiments à détruire et doit lancer un projectile de type «Arme à sous-munitions» pour maximiser le nombre de cibles atteintes sans toucher aux batiments de type protégés (tel que des hospital de campagne), le tout en utilisant les plus petites forces de propulsions. '''
 
     @property
-    def description(self) -> str:
-        return '''Description, voir modèle.'''
+    def description(self) -> str:  # note : override
+        """Description du problème."""
+        return '''On cherche à obtenir une valeur .
+
+    Données initiales du problème : 
+        - Position Initiale en X déterminée par une barre défilement
+        - Position Initiale en Y déterminée par une barre défilement
+        - Nombre de bâtiments totaux déterminée par une barre défilement
+        - Nombre de zones protégées en pourcentage du nombre de bâtiments déterminée par une barre de défilement
+        - La gravité déterminée par une liste déroulante contenant des endroits liées à leur gravité par exemple la terre : 9.81
+        - Position finale en y recherchée directement déterminée dans le constructeur
+    Dimension du problème : 
+        - d = 5
+        - d1 = [0., 150.] ce sont des valeurs d'un vecteur de vitesse intial
+        - d2 = [0., 100.] c'est la valeur en pourcentage de la trajectoire parcourue avant la détonation
+        - d3 = [0., 180.] c'est l'angle de propulstion initial en degrée
+        - d4 = [0., 50.] c'est le pourcentage de la force d'explosion en relation avec le vecteur de vitesse intial
+        - d5 = [0., 180.] c'est l'angle de séparation du cluster d'objet
+    Étape Intermédiaire pour le fitness(_translate_from_chromosome)  :
+        - Les valeurs des chromosomes d2 et d4 sont transformées en la valeur correspondante du pourcentage reçu
+        - Les valeurs des chromosomes et des deux nouvelles valeurs calculées avec le pourcentage de d2 et d4 sont ensuite mise dans une fonction qui simulera la trajectoire
+        de la position initiale jusqu'a l'explosion et puis les trajectoires resultantes des nouveaux projectiles jusqu'au point en y posé.
+        - ces trois nouvelles coordonnées vont ensuite être utilisées pour la fonction objective
+    Fonction objective :
+        - si la valeur recherchée est hors de la plage de recherche, la fitness est de 0 
+        - Si un des projectiles touche une zone protégée le score sera de zéro
+        - On recherche la plus grande valeur qui est composée du nombre de cible atteinte * 1000 à laquelle on ajoute le maximum
+    '''
 
     @property
     def problem_definition(self) -> ProblemDefinition:
@@ -179,9 +209,8 @@ class QBalisticProblem(QSolutionToSolvePanel):
                              # La force d'explosion est un % de la propulsion initiale (valeur arbitraire)
                              [0., 360.]]  # angle de separation du spray
 
-        domains = Domains(np.array(dimensions_values), (
-            'Force de propulsion', 'Angle de propulsion',
-            'Trajectoire parcouru avant la detonation', 'Force de separation',
+        domains = Domains(np.array(dimensions_values), ('Force de propulsion', 'Trajectoire parcouru avant la detonation', 'Angle de propulsion',
+             "Force de separation en pourcentage l'initiale,",
             'angle de separation'))
 
         def objective_fonction(chromosome: NDArray) -> float:

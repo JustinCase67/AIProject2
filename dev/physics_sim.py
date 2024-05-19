@@ -54,7 +54,7 @@ class PhysSim:
     def explo_impulsion_finale(coordo, vi, explo_force):
         x, y = coordo
         vix, viy = vi
-        c = (vix ** 2 + viy ** 2) ** 0.5
+        c = ((vix ** 2) + (viy ** 2)) ** 0.5
 
         ux = vix / c
         uy = viy / c
@@ -64,12 +64,27 @@ class PhysSim:
 
         vfx = vix + ex
         vfy = viy + ey
+
+        # # Calculate the magnitude of initial velocity
+        # c = ((vix ** 2) + (viy ** 2)) ** 0.5
+        #
+        # # Calculate unit vectors
+        # ux = vix / c
+        # uy = viy / c
+        #
+        # # Apply impulse to the unit vectors
+        # ux += explo_force
+        # uy += explo_force
+        #
+        # # Calculate final velocity components
+        # vfx = ux * c
+        # vfy = uy * c
         return vfx, vfy
 
     @staticmethod
     def v_explo_new_missiles(number_missiles, explo_angle, vi):
         vix, viy = vi
-        c = (vix ** 2 + viy ** 2) ** 0.5
+        c = ((vix ** 2) + (viy ** 2)) ** 0.5
         angle_origin_vector = PhysSim.vector_angle(vix, viy)
         explo_angle_rad = math.radians(explo_angle)
 
@@ -158,9 +173,9 @@ class PhysSim:
 
 
 def main():
-    vi = 10
+    vi = 18.14
     g = 9.81
-    time_to_split = 2.3
+
     coordo_init = (0,50)
     final_pos_y = 0
     initial_angle = 0
@@ -168,6 +183,9 @@ def main():
     split_angle = 10
     nb_splitting_objects = 3
     iteration_time_s = 1
+    time_to_zero = PhysSim.time_at_yf((vi * math.sin(math.radians(initial_angle))), g, coordo_init[1], final_pos_y)
+    percentage_time = 36
+    time_to_split = 0
 
     final_time_coordo_func = PhysSim.get_final_coordinates_from_start_data(vi, time_to_split, coordo_init, initial_angle, g, split_force, split_angle, nb_splitting_objects, final_pos_y)
     print("final_time_coordo_func: ", final_time_coordo_func)
