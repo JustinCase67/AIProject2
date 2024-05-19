@@ -10,8 +10,19 @@ class PhysSim:
 
     @staticmethod
     def time_at_yf(viy, g, yi, yf):
-        root = ((viy ** 2) + (2 * g * (yi - yf))) ** 0.5
-        return (viy + root) / g
+        root = ((viy ** 2) + (2 * g * abs(yf - yi))) ** 0.5
+        root1 = (viy + root) / g
+        root2 = (viy - root) / g
+
+        if root1 > 0 and root2 > 0:
+            smallest_root = min(root1, root2)
+        elif root1 > 0:
+            smallest_root = root1
+        elif root2 > 0:
+            smallest_root = root2
+        chosen_root = smallest_root
+
+        return chosen_root
 
     @staticmethod
     def position(pi, vi, g, t):

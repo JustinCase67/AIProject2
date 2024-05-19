@@ -6,30 +6,43 @@
 #                                |___/                                                
 
 
-
 from math import log10
 from umath import clamp
 from random import randint, uniform
 
 from PySide6.QtCore import Qt, Slot, Signal, QSize, QPointF
 from PySide6.QtWidgets import (QWidget, QLabel, QScrollBar, QPushButton,
-                               QHBoxLayout, QSizePolicy)
+                               QHBoxLayout, QSizePolicy, QButtonGroup,
+                               QRadioButton)
 from PySide6.QtGui import QPaintEvent, QPainter, QPen, QBrush, QColor, QImage
 
 from __feature__ import snake_case, true_property
 
 
+def create_radio_button_group(title: str | None, *options: str):
+    button_group = QButtonGroup()
+    layout = QHBoxLayout()
+    label = QLabel(title)
+    layout.add_widget(label)
+    for option in options:
+        button = QRadioButton(option)
+        button_group.add_button(button)
+        layout.add_widget(button)
+    return button_group, layout
 
 
-def create_scroll_int_value(minimum_value : int,
-                            initial_value : int, 
-                            maximum_value : int, 
-                            title : None | str | tuple[str, str] | list[str, str] = None, # tuple[str, str] = (title, tooltip)
-                            value_prefix : str = "", 
-                            value_suffix : str = "", 
-                            sb_min_width : int = 150, 
-                            value_width : int = 50, 
-                            default_width : int = 25) -> tuple[QScrollBar, QHBoxLayout]:
+def create_scroll_int_value(minimum_value: int,
+                            initial_value: int,
+                            maximum_value: int,
+                            title: None | str | tuple[str, str] | list[
+                                str, str] = None,
+                            # tuple[str, str] = (title, tooltip)
+                            value_prefix: str = "",
+                            value_suffix: str = "",
+                            sb_min_width: int = 150,
+                            value_width: int = 50,
+                            default_width: int = 25) -> tuple[
+    QScrollBar, QHBoxLayout]:
     """
     Crée et retourne un assemblage de widgets facilitant la gestion d'un nombre entier.
     
@@ -66,8 +79,8 @@ def create_scroll_int_value(minimum_value : int,
 
     Exemple d'utilisation :
         scroll_bar, layout = create_scroll_int_value(0, 50, 100)
-    """    
-    
+    """
+
     minimum_value = min(minimum_value, maximum_value)
     maximum_value = max(minimum_value, maximum_value)
     initial_value = clamp(minimum_value, initial_value, maximum_value)
@@ -93,41 +106,50 @@ def create_scroll_int_value(minimum_value : int,
 
     layout = QHBoxLayout()
     if title is not None:
-        if isinstance(title, (tuple, list)) and len(title) == 2 and all(isinstance(t, str) for t in title):
+        if isinstance(title, (tuple, list)) and len(title) == 2 and all(
+                isinstance(t, str) for t in title):
             title_label = QLabel(title[0])
             title_label.tool_tip = title[1]
         elif isinstance(title, str):
             title_label = QLabel(title)
         else:
-            raise TypeError(f'Invalid title type [None, str, tuple[str, str], list[str, str]]: {type(title)}')
-        title_label.size_policy = QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+            raise TypeError(
+                f'Invalid title type [None, str, tuple[str, str], list[str, str]]: {type(title)}')
+        title_label.size_policy = QSizePolicy(QSizePolicy.Maximum,
+                                              QSizePolicy.Fixed)
         layout.add_widget(title_label)
     layout.add_widget(scroll_bar)
     layout.add_widget(value_label)
     layout.add_widget(default_button)
     layout.add_widget(random_button)
 
-    update_function = lambda value: setattr(value_label, 'text', f'{value_prefix}{value}{value_suffix}')
+    update_function = lambda value: setattr(value_label, 'text',
+                                            f'{value_prefix}{value}{value_suffix}')
     update_function(initial_value)
     scroll_bar.valueChanged.connect(update_function)
-    default_button.clicked.connect(lambda : setattr(scroll_bar, 'value', initial_value))
-    random_button.clicked.connect(lambda : setattr(scroll_bar, 'value', randint(minimum_value, maximum_value)))
+    default_button.clicked.connect(
+        lambda: setattr(scroll_bar, 'value', initial_value))
+    random_button.clicked.connect(lambda: setattr(scroll_bar, 'value',
+                                                  randint(minimum_value,
+                                                          maximum_value)))
 
     return scroll_bar, layout
 
 
-    
-def create_scroll_real_value(minimum_value : float, 
-                             initial_value : float, 
-                             maximum_value : float, 
-                             precision : int, 
-                             display_multiplier : float = 1., 
-                             title : None | str | tuple[str, str] | list[str, str] = None, # tuple[str, str] = (title, tooltip)
-                             value_prefix : str = "", 
-                             value_suffix : str = "", 
-                             sb_min_width : int = 150, 
-                             value_width : int = 50, 
-                             default_width : int = 25) -> tuple[QScrollBar, QHBoxLayout]:
+def create_scroll_real_value(minimum_value: float,
+                             initial_value: float,
+                             maximum_value: float,
+                             precision: int,
+                             display_multiplier: float = 1.,
+                             title: None | str | tuple[str, str] | list[
+                                 str, str] = None,
+                             # tuple[str, str] = (title, tooltip)
+                             value_prefix: str = "",
+                             value_suffix: str = "",
+                             sb_min_width: int = 150,
+                             value_width: int = 50,
+                             default_width: int = 25) -> tuple[
+    QScrollBar, QHBoxLayout]:
     """
     Crée et retourne un assemblage de widgets facilitant la gestion d'un nombre réel.
     
@@ -171,8 +193,8 @@ def create_scroll_real_value(minimum_value : float,
     Exemple d'utilisation :
         scroll_bar, layout = create_scroll_real_value(0.0, 0.5, 1.0, 2)
     """
-    minimum_value : int = min(minimum_value, maximum_value)
-    maximum_value : int = max(minimum_value, maximum_value)
+    minimum_value: int = min(minimum_value, maximum_value)
+    maximum_value: int = max(minimum_value, maximum_value)
     initial_value = clamp(minimum_value, initial_value, maximum_value)
 
     resolution = 10 ** precision
@@ -180,7 +202,8 @@ def create_scroll_real_value(minimum_value : float,
     format_string = f'.{resolution_format}f' if resolution_format > 0 else 'g'
     scroll_bar = QScrollBar()
     scroll_bar.orientation = Qt.Horizontal
-    scroll_bar.set_range(0, round((maximum_value - minimum_value) * resolution))
+    scroll_bar.set_range(0,
+                         round((maximum_value - minimum_value) * resolution))
     scroll_bar.minimum_width = sb_min_width
 
     value_label = QLabel()
@@ -198,14 +221,17 @@ def create_scroll_real_value(minimum_value : float,
 
     layout = QHBoxLayout()
     if title is not None:
-        if isinstance(title, (tuple, list)) and len(title) == 2 and all(isinstance(t, str) for t in title):
+        if isinstance(title, (tuple, list)) and len(title) == 2 and all(
+                isinstance(t, str) for t in title):
             title_label = QLabel(title[0])
             title_label.tool_tip = title[1]
         elif isinstance(title, str):
             title_label = QLabel(title)
         else:
-            raise TypeError(f'Invalid title type [None, str, tuple[str, str], list[str, str]]: {type(title)}')
-        title_label.size_policy = QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+            raise TypeError(
+                f'Invalid title type [None, str, tuple[str, str], list[str, str]]: {type(title)}')
+        title_label.size_policy = QSizePolicy(QSizePolicy.Maximum,
+                                              QSizePolicy.Fixed)
         layout.add_widget(title_label)
     layout.add_widget(scroll_bar)
     layout.add_widget(value_label)
@@ -213,19 +239,22 @@ def create_scroll_real_value(minimum_value : float,
     layout.add_widget(random_button)
 
     # not entirely tested... to do
-    scroll_bar.set_real_value = lambda value : setattr(scroll_bar, 'value', round((value - minimum_value) * resolution))
-    scroll_bar.get_real_value = lambda : scroll_bar.value / resolution + minimum_value
-    update_function = lambda _: setattr(value_label, 'text', f'{value_prefix}{scroll_bar.get_real_value() * display_multiplier:{format_string}}{value_suffix}')
-    
+    scroll_bar.set_real_value = lambda value: setattr(scroll_bar, 'value',
+                                                      round((
+                                                                        value - minimum_value) * resolution))
+    scroll_bar.get_real_value = lambda: scroll_bar.value / resolution + minimum_value
+    update_function = lambda _: setattr(value_label, 'text',
+                                        f'{value_prefix}{scroll_bar.get_real_value() * display_multiplier:{format_string}}{value_suffix}')
+
     scroll_bar.set_real_value(initial_value)
     update_function(initial_value)
     scroll_bar.valueChanged.connect(update_function)
-    default_button.clicked.connect(lambda : scroll_bar.set_real_value(initial_value))
-    random_button.clicked.connect(lambda : scroll_bar.set_real_value(uniform(minimum_value, maximum_value)))
+    default_button.clicked.connect(
+        lambda: scroll_bar.set_real_value(initial_value))
+    random_button.clicked.connect(lambda: scroll_bar.set_real_value(
+        uniform(minimum_value, maximum_value)))
 
     return scroll_bar, layout
-
-
 
 
 class QImageViewer(QWidget):
@@ -259,35 +288,36 @@ class QImageViewer(QWidget):
 
     imageChanged = Signal(QImage)
 
-    def __init__(self, smooting_image : bool = False, parent : QWidget | None = None) -> None:
+    def __init__(self, smooting_image: bool = False,
+                 parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._smoothing_image_option = Qt.SmoothTransformation if smooting_image else Qt.FastTransformation
         self._default_background_brush = QBrush(QColor(64, 64, 64))
         self._no_image_text_pen = QPen(QColor(128, 128, 128))
 
         self.clear()
-        
+
     @property
     def image(self) -> QImage:
         """L'image affichée au centre du widget."""
         return self._image
 
     @image.setter
-    def image(self, value : QImage) -> None:
+    def image(self, value: QImage) -> None:
         self._image = value
         self.update()
         self.imageChanged.emit(self._image)
 
     @Slot()
-    def set_image(self, image : QImage) -> None:
+    def set_image(self, image: QImage) -> None:
         """Connecteur définissant l'image à afficher."""
-        self.image = image # call the setter
-        
+        self.image = image  # call the setter
+
     def clear(self) -> None:
         """Efface l'image actuellement affichée."""
-        self.image = QImage(QSize(), QImage.Format_ARGB32) # call the setter
-    
-    def paint_event(self, event : QPaintEvent) -> None:
+        self.image = QImage(QSize(), QImage.Format_ARGB32)  # call the setter
+
+    def paint_event(self, event: QPaintEvent) -> None:
         """Redessine le widget avec l'image actuelle ou un texte 'no image' si aucune image n'est définie.
         
         ATTENTION : Conceptuellement, cette méthode est protégée et ne devrait pas être appelée directement.
@@ -296,17 +326,15 @@ class QImageViewer(QWidget):
         painter.set_render_hint(QPainter.Antialiasing)
         painter.set_background(self._default_background_brush)
         painter.erase_rect(self.rect)
-        
+
         if self._image.is_null():
             painter.set_pen(self._no_image_text_pen)
             painter.draw_text(self.rect, Qt.AlignCenter, "--- no image ---")
         else:
-            image = self._image.scaled(self.size, Qt.KeepAspectRatio, self._smoothing_image_option)
-            painter.draw_image(QPointF((self.width - image.width())/2., (self.height - image.height())/2.), image)
+            image = self._image.scaled(self.size, Qt.KeepAspectRatio,
+                                       self._smoothing_image_option)
+            painter.draw_image(QPointF((self.width - image.width()) / 2.,
+                                       (self.height - image.height()) / 2.),
+                               image)
 
         painter.end()
-
-
-
-
-
