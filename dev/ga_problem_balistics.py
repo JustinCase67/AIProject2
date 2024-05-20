@@ -82,7 +82,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
         self._width = width
         self._height = height
         self._longueur_batiment = longueur_bat
-        self._gravity = 9.81
+        self._gravity = -9.81
         self.generate_batiments()
         self._cible_finale_y = cible_finale_y
 
@@ -201,7 +201,9 @@ class QBalisticProblem(QSolutionToSolvePanel):
     Fonction objective :
         - si la valeur recherchée est hors de la plage de recherche, la fitness est de 0 
         - Si un des projectiles touche une zone protégée le score sera de zéro
-        - On recherche la plus grande valeur qui est composée du nombre de cible atteinte * 1000 à laquelle on ajoute le maximum
+        - Si aucune cible est atteinte le score sera de zéro
+        - On recherche le plus de cibles diferentes atteintes en minimisant la force totale utilisée (force totale est la somme de la force initiale et d'explosion)
+        - Pour ce faire on prends le nombre de cibles diferentes atteintes * 1000 et on ajoute la force économisée par le tir, c'est à dire, la force maximale potentielle - la force utilisée, donc une force utilisée plus faibel rapporte plus de points
     '''
 
     # PROBLEM DEFINITION WITH OBJECTIVE FUNCTION-------------------------------------------------------------------------------------------------
@@ -214,7 +216,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
                              [0., 180.],  # angle de propulsion (en degre)
                              [0., 50.],
                              # La force d'explosion est un % de la propulsion initiale (valeur arbitraire)
-                             [0., 180.]]  # angle de separation du spray
+                             [0., 90.]]  # angle de separation du spray
 
         domains = Domains(np.array(dimensions_values), ('Force de propulsion', 'Trajectoire parcouru avant la detonation', 'Angle de propulsion',
              "Force de separation en pourcentage l'initiale,",
