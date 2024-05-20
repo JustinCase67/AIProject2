@@ -1,6 +1,6 @@
 import sys
 
-
+from ga_strategy_multi_mutation import MultiMutationStrategy
 from gaapp import QGAApp
 
 from ga_strategy_genes_mutation import GenesMutationStrategy, MultiMutationStrategy
@@ -30,7 +30,7 @@ def main():
     # ga_app.add_selection_strategy(...)
     # ga_app.add_crossover_strategy(...)
     ga_app.add_mutation_strategy(GenesMutationStrategy)                             # note : on passe une classe, pas une instance
-    ga_app.add_mutation_strategy(MultiMutationStrategy)                             # note : on passe une classe, pas une instance
+    ga_app.add_mutation_strategy(MultiMutationStrategy)
 
 
     # Exemple d'ajout de panneau de résolution de problème

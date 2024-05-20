@@ -15,7 +15,7 @@ class PhysSim:
         root2 = (viy - root) / g
 
         if root1 > 0 and root2 > 0:
-            smallest_root = min(root1,root2)
+            smallest_root = min(root1, root2)
         elif root1 > 0:
             smallest_root = root1
         elif root2 > 0:

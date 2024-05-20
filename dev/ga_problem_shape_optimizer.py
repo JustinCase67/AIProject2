@@ -19,15 +19,10 @@ from __feature__ import snake_case, true_property
 
 class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
 
-    """_background_color = QColor(48, 48, 48)
+    _background_color = QColor(48, 48, 48)
     _shape_color = QColor(148, 164, 222)
     _obstacle_color = QColor(255, 255, 255)
     _obstacle_length = 5
-    Il faudrait des variables de classe, voir QUnknownProblem"""
-
-    _population_solution_pen_color = QColor(128, 128, 128)
-    _population_solution_pen_width = 1.0
-    _population_solution_pen = QPen(_population_solution_pen_color, _population_solution_pen_width)
 
     def __init__(self, width: int = 500, height: int = 250,
                  max_obst: int = 100,
@@ -36,12 +31,11 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         self.__initialized = False
         self.__width = width
         self.__height = height
-        self.__canvas_area = self.__width * self.__height  # est-ce vraiment utile ?
         self.__points_list = []
         self.__current_shape = None
 
-        self.__triangle_center =QPointF(0.5, -0.334)
-        self.__etoile_center = QPointF(0.5, -0.5)
+        self.__triangle_center = QPointF(0.5, - 0.334)
+        self.__etoile_center = QPointF(0.5, - 0.5)
         self.__u_center = QPointF(0.5, (52/125) )
         self.__shapes = {'Triangle': QPolygonF((QPointF(0, 0) - self.__triangle_center, 
                                                 QPointF(0.5, -1) - self.__triangle_center, 
@@ -84,11 +78,6 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         main_layout.add_widget(param_group_box)
         main_layout.add_widget(self._visualization_widget)
 
-        self._background_color = QColor(48, 48, 48)
-        self._shape_color = QColor(148, 164, 222)
-        self._obstacle_color = QColor(255, 255, 255)
-        self._obstacle_length = 5
-
         self.__initialize_values()
 
     def __initialize_values(self) -> None:
@@ -121,7 +110,26 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
 
     @property
     def description(self) -> str:
-        return '''Description, voir modèle.'''
+        return '''On recherche les transformations à appliquer sur une forme afin de maximiser son aire sur une surface donnée sans collision. On s'attend à ce que la forme prenne le plus d'espace possible sans qu'elle ne contienne d'obstacles ni qu'elle ne sorte du cadre.
+
+Données initiales du problème :
+-	Zone de recherche : donnée à même le constructeur par les arguments ‘width’ et ‘height
+-	La quantité d’obstacles, déterminée par une barre de défilement allant de 1 à 100
+-	La forme de base, déterminée par une liste déroulante avec les choix suivants : triangle, étoile à quatre points et lettre U.
+Dimensions du problème :
+-	D = 4
+-	D1 = [0., width]
+-	D2 = [0., height]
+-	D3 = [0., 360.]
+-	D4 = [1., min(width, height)]
+Fonction objective :
+-	Si la forme initiale avec les transformations appliquées contient au moins un point, le score est de 0
+-	Si la forme initiale avec les transformations appliquées sort du canevas, le score est de 0
+-	Sinon, on calcule l’aire de la forme initiale avec les transformations sur l’aire du canevas. Comme on recherche la valeur la plus grande, il suffit seulement de multiplier les valeurs par 10 000 pour avoir un écart acceptable entre les scores de fitness. 
+Rétroaction proposée :
+-	Pour chaque génération, nous dessinons pleinement la meilleure forme initiale avec les transformations appliquées et nous dessinons en lignes pointillées la forme initiale avec les transformations appliquées pour tous les autres membres de la population.
+-	Nous dessinons tous les obstacles par la suite afin de mieux visualiser où se trouve la meilleure forme proposée par rapport aux points et si elle en contient.
+'''
 
     @property
     def problem_definition(self) -> ProblemDefinition:
@@ -140,7 +148,7 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
                 return 0
             elif self.contains(QRectF(0, 0, self.__width, self.__height),
                                [evolved_shape.bounding_rect()]):
-                return process_area(evolved_shape) / self.__canvas_area * 10000
+                return process_area(evolved_shape) / self.__width * self.__height * 10000
             else:
                 return 0
 
@@ -161,9 +169,10 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
     @property
     def default_parameters(self) -> Parameters:
         engine_parameters = Parameters()
-        # Utiliser Mutate all genes
-        engine_parameters.maximum_epoch = 350
-        engine_parameters.mutation_rate = 0.6
+        engine_parameters.maximum_epoch = 250
+        engine_parameters.population_size = 50
+        engine_parameters.elitism_rate = 0.2
+        engine_parameters.mutation_rate = 0.30
         return engine_parameters
 
     @staticmethod
@@ -188,17 +197,17 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
             painter.translate(painter.device().rect().center())
             painter.scale(125,125)
         painter.set_pen(pen)
-        painter.set_brush(Qt.NoBrush if pen != Qt.NoPen else self._shape_color)
+        painter.set_brush(Qt.NoBrush if pen != Qt.NoPen else QShapeOptimizerProblemPanel._shape_color)
         painter.draw_polygon(polygon)
         painter.restore()
 
     def _draw_obstacles(self, painter: QPainter):
         painter.save()
         painter.set_pen(Qt.NoPen)
-        painter.set_brush(self._obstacle_color)
+        painter.set_brush(QShapeOptimizerProblemPanel._obstacle_color)
         for obstacle in self.__points_list:
             painter.draw_ellipse(obstacle.x(), obstacle.y(),
-                                 self._obstacle_length, self._obstacle_length)
+                                 QShapeOptimizerProblemPanel._obstacle_length, QShapeOptimizerProblemPanel._obstacle_length)
         painter.restore()
 
     def draw_bbox(self, painter: QPainter, polygon: QPolygonF):
@@ -212,23 +221,20 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
         image = QImage(QSize(self.__width - 1, self.__height - 1),
                        QImage.Format_ARGB32)
 
-        image.fill(self._background_color)
+        image.fill(QShapeOptimizerProblemPanel._background_color)
         painter = QPainter(image)
         painter.set_pen(Qt.NoPen)
 
         form = self.__current_shape
 
         if ga:
-            # Dessine toute la population sauf la meilleure solution
-            pen = QPen(Qt.white, 2, Qt.DotLine)  # Set the pen to a dashed line
-            for chromosome in ga.population[1:]:  # ga.population[1:] si on ne veut pas dessiner la première car 0 est la meilleure solution
+            pen = QPen(Qt.white, 2, Qt.DotLine)
+            for chromosome in ga.population[1:]:
                 rejected_form = self.transform_shape(form, chromosome)
                 self._draw_polygon(painter,rejected_form,0, pen)
 
-            best = ga.history.best_solution # meilleur de l'historique
-            # best = ga.population[0] # meilleur de l'époque actuelle
+            best = ga.history.best_solution
             form = self.transform_shape(form, best)
-            #self.draw_bbox(painter, form)  # pour debug le bounding box
             self._draw_polygon(painter, form, 0)
         else:
             self._draw_polygon(painter, form, 1)            
