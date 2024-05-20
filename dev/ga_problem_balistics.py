@@ -13,6 +13,8 @@ from physics_sim import PhysSim
 from uqtwidgets import QImageViewer, create_scroll_int_value, create_radio_button_group
 from gaapp import QSolutionToSolvePanel
 from gacvm import ProblemDefinition, Domains, Parameters, GeneticAlgorithm
+from ga_strategy_genes_mutation import MultiMutationStrategy
+
 
 from __feature__ import snake_case, true_property
 
@@ -248,9 +250,13 @@ Pour ce faire on prends le nombre de cibles diferentes atteintes * 1000 et on aj
     @property
     def default_parameters(self) -> Parameters:
         engine_parameters = Parameters()
-        # changer pour les bons paramètres
-        engine_parameters.maximum_epoch = 200
+        strategy = MultiMutationStrategy()
+        engine_parameters.maximum_epoch = 1000
         engine_parameters.population_size = 100
+        engine_parameters.elitism_rate = 0.10
+        engine_parameters.selection_rate = 0.75
+        engine_parameters.mutation_rate = 0.50
+        engine_parameters.mutation_strategy = strategy
         return engine_parameters
 
     def _translate_from_chromosome(self, chromo: NDArray, all: bool) -> tuple:
