@@ -6,7 +6,7 @@ class PhysSim:
 
     @staticmethod
     def vector_angle(x, y):
-        return math.atan(y / x)
+        return math.atan2(y,x)
 
     @staticmethod
     def time_at_yf(viy, g, yi, yf):
@@ -54,7 +54,7 @@ class PhysSim:
     def explo_impulsion_finale(coordo, vi, explo_force):
         x, y = coordo
         vix, viy = vi
-        c = ((vix ** 2) + (viy ** 2)) ** 0.5
+        '''c = ((vix ** 2) + (viy ** 2)) ** 0.5
 
         ux = vix / c
         uy = viy / c
@@ -63,22 +63,22 @@ class PhysSim:
         ey = uy * explo_force
 
         vfx = vix + ex
-        vfy = viy + ey
+        vfy = viy + ey'''
 
-        # # Calculate the magnitude of initial velocity
-        # c = ((vix ** 2) + (viy ** 2)) ** 0.5
-        #
-        # # Calculate unit vectors
-        # ux = vix / c
-        # uy = viy / c
-        #
-        # # Apply impulse to the unit vectors
-        # ux += explo_force
-        # uy += explo_force
-        #
-        # # Calculate final velocity components
-        # vfx = ux * c
-        # vfy = uy * c
+        # Calculate the magnitude of initial velocity
+        c = ((vix ** 2) + (viy ** 2)) ** 0.5
+
+        # Calculate unit vectors
+        ux = vix / c
+        uy = viy / c
+
+        # Apply impulse to the unit vectors
+        ux += explo_force
+        uy += explo_force
+
+        # Calculate final velocity components
+        vfx = ux * c
+        vfy = uy * c
         return vfx, vfy
 
     @staticmethod

@@ -172,12 +172,12 @@ class QBalisticProblem(QSolutionToSolvePanel):
 
     @property
     def summary(self) -> str:
-        return '''Un drone vole au dessus de batiments à détruire et doit lancer un projectile de type «Arme à sous-munitions» pour maximiser le nombre de cibles atteintes sans toucher aux batiments de type protégés (tel que des hospital de campagne), le tout en utilisant les plus petites forces de propulsions. '''
+        return '''Un drone est dans un espace au dessus de deux types de zones. Celles-ci sont les zones cibles et les zones protégées(qui ne doivent pas être touchées). Ce drone à pour but de lancer un projectile qui se séparera en 3 pendant la trajectoire et les projectiles subséquents doivent atteindre le plus de cibles possibles en utilisant les plus petites forces de propulsions. '''
 
     @property
     def description(self) -> str:  # note : override
         """Description du problème."""
-        return '''On cherche à obtenir une valeur .
+        return '''On cherche à obtenir un score correspondant au nombre de zones cibles touchées ainsi que la force utilisée .
 
     Données initiales du problème : 
         - Position Initiale en X déterminée par une barre défilement
@@ -201,8 +201,9 @@ class QBalisticProblem(QSolutionToSolvePanel):
     Fonction objective :
         - si la valeur recherchée est hors de la plage de recherche, la fitness est de 0 
         - Si un des projectiles touche une zone protégée le score sera de zéro
-        - On recherche la plus grande valeur qui est composée du nombre de cible atteinte * 1000 à laquelle on ajoute le maximum
-    '''
+        - Si aucune cible est atteinte le score sera de zéro
+        - On recherche le plus de cibles diferentes atteintes en minimisant la force totale utilisée (force totale est la somme de la force initiale et d'explosion)
+Pour ce faire on prends le nombre de cibles diferentes atteintes * 1000 et on ajoute la force économisée par le tir, c'est à dire, la force maximale potentielle - la force utilisée, donc une force utilisée plus faible rapporte plus de points '''
 
     # PROBLEM DEFINITION WITH OBJECTIVE FUNCTION-------------------------------------------------------------------------------------------------
     @property
