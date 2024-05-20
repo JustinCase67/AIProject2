@@ -208,15 +208,15 @@ Pour ce faire on prends le nombre de cibles diferentes atteintes * 1000 et on aj
                              [0., 180.],  # angle de propulsion (en degre)
                              [0., 50.],
                              # La force d'explosion est un % de la propulsion initiale (valeur arbitraire)
-                             [0., 360.]]  # angle de separation du spray
+                             [0., 180.]]  # angle de separation du spray
 
-        domains = Domains(np.array(dimensions_values), ('Force de propulsion', 'Trajectoire parcouru avant la detonation', 'Angle de propulsion',
+        domains = Domains(np.array(dimensions_values), ('Force de propulsion', 'Trajectoire parcouru en pourcentage avant la detonation', 'Angle de propulsion',
              "Force de separation en pourcentage l'initiale,",
             'angle de separation'))
 
         def objective_fonction(chromosome: NDArray) -> float:
             force_init = chromosome[0]
-            force_split = force_init * chromosome[3] / 100.
+            force_split = force_init * (chromosome[3] / 100.)
             impacts = self._translate_from_chromosome(chromosome, False)
             nb_target = 0
             nb_protected = 0
@@ -269,7 +269,7 @@ Pour ce faire on prends le nombre de cibles diferentes atteintes * 1000 et on aj
                                                           angle_init,
                                                           self._gravity,
                                                           force_split,
-                                                          angle_split, 3, 0, 1)
+                                                          angle_split, 3, self._cible_finale_y, 1)
         else:
             return PhysSim.get_final_coordinates_from_start_data(force_init,
                                                                  temps_split,
@@ -278,7 +278,7 @@ Pour ce faire on prends le nombre de cibles diferentes atteintes * 1000 et on aj
                                                                  self._gravity,
                                                                  force_split,
                                                                  angle_split,
-                                                                 3, 0)
+                                                                 3, self._cible_finale_y)
 
     @staticmethod
     def is_pos_in_ranges(point: tuple[float, float], batiments: List[Tuple[int, int]], height: int) -> bool:

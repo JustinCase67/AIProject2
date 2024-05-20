@@ -173,7 +173,7 @@ class PhysSim:
 
 
 def main():
-    vi = 18.14
+    vi = 10
     g = 9.81
 
     coordo_init = (0,50)
@@ -183,25 +183,15 @@ def main():
     split_angle = 10
     nb_splitting_objects = 3
     iteration_time_s = 1
-    time_to_zero = PhysSim.time_at_yf((vi * math.sin(math.radians(initial_angle))), g, coordo_init[1], final_pos_y)
-    percentage_time = 36
-    time_to_split = 0
+
+    time_to_split = 1.5
 
     final_time_coordo_func = PhysSim.get_final_coordinates_from_start_data(vi, time_to_split, coordo_init, initial_angle, g, split_force, split_angle, nb_splitting_objects, final_pos_y)
     print("final_time_coordo_func: ", final_time_coordo_func)
 
     all_points_func = PhysSim.get_all_points_from_start_data(vi, time_to_split, coordo_init, initial_angle, g, split_force, split_angle, nb_splitting_objects, final_pos_y, iteration_time_s)
     print("all_points", all_points_func)
-    for i in range(5000):
-        final_time_coordo_func = PhysSim.get_final_coordinates_from_start_data(vi, time_to_split, coordo_init,
-                                                                               initial_angle, g, split_force, split_angle,
-                                                                               nb_splitting_objects, final_pos_y)
 
-        all_points_func = PhysSim.get_all_points_from_start_data(vi, time_to_split, coordo_init, initial_angle, g,
-                                                                 split_force, split_angle, nb_splitting_objects,
-                                                                 final_pos_y, iteration_time_s)
-
-    print("done")
 
 
 
