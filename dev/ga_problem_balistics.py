@@ -94,9 +94,9 @@ class QBalisticProblem(QSolutionToSolvePanel):
             self._set_zone_protege)
 
         self.__gravity_values = {'Terre': -9.81,
-                                 'Mars': 3.71,
-                                 'Saturn': 10.44,
-                                 'Soleil': 274.00}
+                                 'Mars': -3.71,
+                                 'Saturn': -10.44,
+                                 'Soleil': -274.00}
         self._gravity_picker = QComboBox()
         self._gravity_picker.add_items(self.__gravity_values.keys())
         self._gravity_picker.activated.connect(
