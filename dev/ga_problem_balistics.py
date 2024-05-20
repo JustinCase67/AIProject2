@@ -186,7 +186,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
         - d = 5
         - d1 = [0., 150.] ce sont des valeurs d'un vecteur de vitesse intial
         - d2 = [0., 100.] c'est la valeur en pourcentage de la trajectoire parcourue avant la détonation
-        - d3 = [0., 180.] c'est l'angle de propulstion initial en degrée
+        - d3 = [0., 360.] c'est l'angle de propulstion initial en degrée
         - d4 = [0., 50.] c'est le pourcentage de la force d'explosion en relation avec le vecteur de vitesse intial
         - d5 = [0., 180.] c'est l'angle de séparation du cluster d'objet
     Étape Intermédiaire pour le fitness(_translate_from_chromosome)  :
@@ -208,14 +208,16 @@ class QBalisticProblem(QSolutionToSolvePanel):
                              # Force impulsion initiale (valeur arbitraire)
                              [0., 100.],
                              # % de la trajectoire parcouru avant la detonation (donne le temps de detonation
-                             [0., 180.],  # angle de propulsion (en degre)
+                             [0., 360.],  # angle de propulsion (en degre)
                              [0., 50.],
                              # La force d'explosion est un % de la propulsion initiale (valeur arbitraire)
-                             [0., 90.]]  # angle de separation du spray
+                             [0., 180.]]  # angle de separation du spray
 
-        domains = Domains(np.array(dimensions_values), ('Force de propulsion', 'Trajectoire parcouru en pourcentage avant la detonation', 'Angle de propulsion',
-             "Force de separation en pourcentage l'initiale,",
-            'angle de separation'))
+        domains = Domains(np.array(dimensions_values), ('Force de propulsion',
+                                                                'Trajectoire parcouru en pourcentage avant la detonation',
+                                                                'Angle de propulsion',
+                                                                "Force de separation en pourcentage de la force initiale",
+                                                                'angle de separation'))
 
         def objective_fonction(chromosome: NDArray) -> float:
             force_init = chromosome[0]
@@ -276,7 +278,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
                                                           angle_init,
                                                           self._gravity,
                                                           force_split,
-                                                          angle_split, 3, self._cible_finale_y, 1)
+                                                          angle_split, 3, self._cible_finale_y, 0.5)
         else:
             return PhysSim.get_final_coordinates_from_start_data(force_init,
                                                                  temps_split,
