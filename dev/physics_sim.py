@@ -159,29 +159,3 @@ class PhysSim:
                                       final_objects_time_coordinates[0], speed_all_objects_after_split,
                                       final_objects_time_coordinates[1], iteration_time, nb_object_split)
 
-
-def main():
-    vi = 10
-    g = 9.81
-
-    coordo_init = (0, 50)
-    final_pos_y = 0
-    initial_angle = 0
-    split_force = 1.5
-    split_angle = 10
-    nb_splitting_objects = 3
-    iteration_time_s = 1
-
-    time_to_split = 1.5
-
-    final_time_coordo_func = PhysSim.get_final_coordinates_from_start_data(vi, time_to_split, coordo_init,
-                                                                           initial_angle, g, split_force, split_angle,
-                                                                           nb_splitting_objects, final_pos_y)
-
-    all_points_func = PhysSim.get_all_points_from_start_data(vi, time_to_split, coordo_init, initial_angle, g,
-                                                             split_force, split_angle, nb_splitting_objects,
-                                                             final_pos_y, iteration_time_s)
-
-
-if __name__ == '__main__':
-    main()

@@ -9,11 +9,11 @@ from PySide6.QtGui import QImage, QPainter, QPainterPath, QColor, QPen, QBrush
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, \
     QGroupBox, QFormLayout, QSizePolicy, QComboBox
 
+from ga_strategy_multi_mutation import MultiMutationStrategy
 from physics_sim import PhysSim
 from uqtwidgets import QImageViewer, create_scroll_int_value, create_radio_button_group
 from gaapp import QSolutionToSolvePanel
 from gacvm import ProblemDefinition, Domains, Parameters, GeneticAlgorithm
-from ga_strategy_genes_mutation import MultiMutationStrategy
 
 
 from __feature__ import snake_case, true_property
@@ -45,8 +45,6 @@ class QBalisticProblem(QSolutionToSolvePanel):
     _other_width = 2.
     _other_pen = QPen(_other_color, _other_width)
     _other_pen.set_style(Qt.DotLine)
-
-    _fake_pen = QPen(QColor(Qt.red), _other_width)
 
     def __init__(self, width: int = 500, height: int = 250,
                  longueur_bat: int = 20,
@@ -131,7 +129,7 @@ class QBalisticProblem(QSolutionToSolvePanel):
 
     @Slot()
     def _set_view(self) -> None:
-        button = self.sender() # ref -> ChatGPT
+        button = self.sender() # ref -> ChatGPT (MS)
         if button.text == "Meilleur seulement":
             self._view = False
         else:
@@ -168,38 +166,38 @@ class QBalisticProblem(QSolutionToSolvePanel):
 
     @property
     def summary(self) -> str:
-        return '''Un drone est dans un espace au dessus de deux types de zones. Celles-ci sont les zones cibles et les zones protégées(qui ne doivent pas être touchées). Ce drone à pour but de lancer un projectile qui se séparera en 3 pendant la trajectoire et les projectiles subséquents doivent atteindre le plus de cibles possibles en utilisant les plus petites forces de propulsions. '''
+        return '''Un drone est dans un espace au dessus de deux types de zones. Celles-ci sont les zones cibles et les zones protégées(qui ne doivent pas être touchées). Ce drone a pour but de lancer un projectile qui se séparera en 3 pendant la trajectoire et les projectiles subséquents doivent atteindre le plus de cibles possibles en utilisant les plus petites forces de propulsions. '''
 
     @property
     def description(self) -> str:  # note : override
         """Description du problème."""
-        return '''On cherche à obtenir un score correspondant au nombre de zones cibles touchées ainsi que la force utilisée .
+        return '''On cherche à obtenir un score correspondant au nombre de zones cibles touchées ainsi qu'à la force utilisée.
 
     Données initiales du problème : 
-        - Position Initiale en X déterminée par une barre défilement
-        - Position Initiale en Y déterminée par une barre défilement
-        - Nombre de bâtiments totaux déterminée par une barre défilement
-        - Nombre de zones protégées en pourcentage du nombre de bâtiments déterminée par une barre de défilement
+        - Position initiale en X déterminée par une barre défilement
+        - Position initiale en Y déterminée par une barre défilement
+        - Nombre de bâtiments totaux déterminé par une barre défilement
+        - Nombre de zones protégées en pourcentage du nombre de bâtiments déterminé par une barre de défilement
         - La gravité déterminée par une liste déroulante contenant des endroits liées à leur gravité par exemple la terre : 9.81
         - Position finale en y recherchée directement déterminée dans le constructeur
-    Dimension du problème : 
+    Dimensions du problème : 
         - d = 5
-        - d1 = [0., 150.] ce sont des valeurs d'un vecteur de vitesse intial
+        - d1 = [0., 150.] ce sont des valeurs d'un vecteur de vitesse intiale
         - d2 = [0., 100.] c'est la valeur en pourcentage de la trajectoire parcourue avant la détonation
-        - d3 = [0., 360.] c'est l'angle de propulstion initial en degrée
-        - d4 = [0., 50.] c'est le pourcentage de la force d'explosion en relation avec le vecteur de vitesse intial
-        - d5 = [0., 180.] c'est l'angle de séparation du cluster d'objet
-    Étape Intermédiaire pour le fitness(_translate_from_chromosome)  :
+        - d3 = [0., 360.] c'est l'angle de propulsion initial en degrés
+        - d4 = [0., 50.] c'est le pourcentage de la force d'explosion en relation avec le vecteur de vitesse intiale
+        - d5 = [0., 180.] c'est l'angle de séparation du cluster d'objets
+    Étape intermédiaire pour le fitness(_translate_from_chromosome)  :
         - Les valeurs des chromosomes d2 et d4 sont transformées en la valeur correspondante du pourcentage reçu
-        - Les valeurs des chromosomes et des deux nouvelles valeurs calculées avec le pourcentage de d2 et d4 sont ensuite mise dans une fonction qui simulera la trajectoire
-        de la position initiale jusqu'a l'explosion et puis les trajectoires resultantes des nouveaux projectiles jusqu'au point en y posé.
+        - Les valeurs des chromosomes et des deux nouvelles valeurs calculées avec le pourcentage de d2 et d4 sont ensuite mises dans une fonction qui simulera la trajectoire
+        de la position initiale jusqu'à l'explosion ainsi que les trajectoires résultantes des nouveaux projectiles jusqu'au point en y posé.
         - ces trois nouvelles coordonnées vont ensuite être utilisées pour la fonction objective
     Fonction objective :
         - si la valeur recherchée est hors de la plage de recherche, la fitness est de 0 
         - Si un des projectiles touche une zone protégée le score sera de zéro
-        - Si aucune cible est atteinte le score sera de zéro
-        - On recherche le plus de cibles diferentes atteintes en minimisant la force totale utilisée (force totale est la somme de la force initiale et d'explosion)
-        - Pour ce faire on prends le nombre de cibles diferentes atteintes * 1000 et on ajoute la force économisée par le tir, c'est à dire, la force maximale potentielle - la force utilisée, donc une force utilisée plus faibel rapporte plus de points
+        - Si aucune cible n'est atteinte le score sera de zéro
+        - On recherche le plus de cibles différentes atteintes en minimisant la force totale utilisée (force totale est la somme de la force initiale et d'explosion)
+        - Pour ce faire on prend le nombre de cibles différentes atteintes * 1000 et on ajoute la force économisée par le tir, c'est-à-dire la force maximale potentielle - la force utilisée, donc une force utilisée plus faible rapporte plus de points.
     '''
 
     @property
@@ -214,10 +212,10 @@ class QBalisticProblem(QSolutionToSolvePanel):
                              [0., 180.]]  # angle de separation du spray
 
         domains = Domains(np.array(dimensions_values), ('Force de propulsion',
-                                                                'Trajectoire parcouru en pourcentage avant la detonation',
+                                                                'Trajectoire parcourue en pourcentage avant la détonation',
                                                                 'Angle de propulsion',
-                                                                "Force de separation en pourcentage de la force initiale",
-                                                                'angle de separation'))
+                                                                "Force de séparation en pourcentage de la force initiale",
+                                                                'Angle de sepération'))
 
         def objective_fonction(chromosome: NDArray) -> float:
             force_init = chromosome[0]

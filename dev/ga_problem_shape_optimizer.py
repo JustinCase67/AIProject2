@@ -3,6 +3,7 @@ import math
 import numpy as np
 from numpy.typing import NDArray
 
+from ga_strategy_multi_mutation import MultiMutationStrategy
 from gaapp import QSolutionToSolvePanel
 from gacvm import ProblemDefinition, Domains, Parameters, GeneticAlgorithm
 from uqtgui import process_area
@@ -10,15 +11,14 @@ from uqtwidgets import QImageViewer, create_scroll_int_value
 
 from PySide6.QtCore import Qt, Slot, QPointF, QSize, QRectF, QRect
 from PySide6.QtGui import QPolygonF, QTransform, QImage, QPainter, QColor, \
-    QPen, QBrush, QFont
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, \
+    QPen
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, \
     QGroupBox, QFormLayout, QSizePolicy, QComboBox
 
 from __feature__ import snake_case, true_property
 
 
 class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
-
     _background_color = QColor(48, 48, 48)
     _shape_color = QColor(148, 164, 222)
     _obstacle_color = QColor(255, 255, 255)
@@ -36,26 +36,34 @@ class QShapeOptimizerProblemPanel(QSolutionToSolvePanel):
 
         self.__triangle_center = QPointF(0.5, - 0.334)
         self.__etoile_center = QPointF(0.5, - 0.5)
-        self.__u_center = QPointF(0.5, (52/125) )
-        self.__shapes = {'Triangle': QPolygonF((QPointF(0, 0) - self.__triangle_center, 
-                                                QPointF(0.5, -1) - self.__triangle_center, 
-                                                QPointF(1, 0) - self.__triangle_center)),
-                         'Etoile': QPolygonF((QPointF(0, -0.5) - self.__etoile_center, QPointF(0.4, -0.4) - self.__etoile_center, QPointF(0.5, 0) - self.__etoile_center, 
-                                              QPointF(0.6, -0.4) - self.__etoile_center, QPointF(1, -0.5) - self.__etoile_center, QPointF(0.6, -0.6) - self.__etoile_center, 
-                                              QPointF(0.5, -1) - self.__etoile_center, QPointF(0.4, -0.6) - self.__etoile_center)),
-                         'The U': QPolygonF((QPointF(0,0) - self.__u_center,
-                                                QPointF(0, 1) - self.__u_center ,
-                                                QPointF(1, 1) - self.__u_center, 
-                                                QPointF(1,0) - self.__u_center, 
-                                                QPointF((5/6),0) - self.__u_center, 
-                                                QPointF((5/6),(5/6)) - self.__u_center, 
-                                                QPointF((1/6),(5/6)) - self.__u_center, 
-                                                QPointF((1/6),0) - self.__u_center)),
-                         }
+        self.__u_center = QPointF(0.5, (52 / 125))
+        self.__shapes = {
+            'Triangle': QPolygonF((QPointF(0, 0) - self.__triangle_center,
+                                   QPointF(0.5, -1) - self.__triangle_center,
+                                   QPointF(1, 0) - self.__triangle_center)),
+            'Etoile': QPolygonF((QPointF(0, -0.5) - self.__etoile_center,
+                                 QPointF(0.4, -0.4) - self.__etoile_center,
+                                 QPointF(0.5, 0) - self.__etoile_center,
+                                 QPointF(0.6, -0.4) - self.__etoile_center,
+                                 QPointF(1, -0.5) - self.__etoile_center,
+                                 QPointF(0.6, -0.6) - self.__etoile_center,
+                                 QPointF(0.5, -1) - self.__etoile_center,
+                                 QPointF(0.4, -0.6) - self.__etoile_center)),
+            'The U': QPolygonF((QPointF(0, 0) - self.__u_center,
+                                QPointF(0, 1) - self.__u_center,
+                                QPointF(1, 1) - self.__u_center,
+                                QPointF(1, 0) - self.__u_center,
+                                QPointF((5 / 6), 0) - self.__u_center,
+                                QPointF((5 / 6), (5 / 6)) - self.__u_center,
+                                QPointF((1 / 6), (5 / 6)) - self.__u_center,
+                                QPointF((1 / 6), 0) - self.__u_center)),
+            }
 
-        #Création des widgets et du layout global
+        # Création des widgets et du layout global
         self._canvas_value = QLabel(f"{self.__width} x {self.__height}")
-        self._obstacle_scroll_bar, obstacle_layout = create_scroll_int_value(1, 25, max_obst)
+        self._obstacle_scroll_bar, obstacle_layout = create_scroll_int_value(1,
+                                                                             25,
+                                                                             max_obst)
         self._obstacle_scroll_bar.valueChanged.connect(
             self.__set_obstacle_count)
 
@@ -127,8 +135,8 @@ Fonction objective :
 -	Si la forme initiale avec les transformations appliquées sort du canevas, le score est de 0
 -	Sinon, on calcule l’aire de la forme initiale avec les transformations sur l’aire du canevas. Comme on recherche la valeur la plus grande, il suffit seulement de multiplier les valeurs par 10 000 pour avoir un écart acceptable entre les scores de fitness. 
 Rétroaction proposée :
--	Pour chaque génération, nous dessinons pleinement la meilleure forme initiale avec les transformations appliquées et nous dessinons en lignes pointillées la forme initiale avec les transformations appliquées pour tous les autres membres de la population.
--	Nous dessinons tous les obstacles par la suite afin de mieux visualiser où se trouve la meilleure forme proposée par rapport aux points et si elle en contient.
+-	Pour chaque génération, on dessine pleinement la meilleure forme initiale avec les transformations appliquées et on dessine en lignes pointillées la forme initiale avec les transformations appliquées pour tous les autres membres de la population.
+-	On dessine tous les obstacles par la suite afin de mieux visualiser où se trouve la meilleure forme proposée par rapport aux points et si elle en contient.
 '''
 
     @property
@@ -148,7 +156,8 @@ Rétroaction proposée :
                 return 0
             elif self.contains(QRectF(0, 0, self.__width, self.__height),
                                [evolved_shape.bounding_rect()]):
-                return process_area(evolved_shape) / self.__width * self.__height * 10000
+                return process_area(
+                    evolved_shape) / self.__width * self.__height * 10000
             else:
                 return 0
 
@@ -169,7 +178,9 @@ Rétroaction proposée :
     @property
     def default_parameters(self) -> Parameters:
         engine_parameters = Parameters()
-        engine_parameters.maximum_epoch = 250
+        strategy = MultiMutationStrategy()
+        engine_parameters.mutation_strategy = strategy
+        engine_parameters.maximum_epoch = 300
         engine_parameters.population_size = 50
         engine_parameters.elitism_rate = 0.2
         engine_parameters.mutation_rate = 0.30
@@ -195,9 +206,10 @@ Rétroaction proposée :
         painter.save()
         if temp:
             painter.translate(painter.device().rect().center())
-            painter.scale(125,125)
+            painter.scale(125, 125)
         painter.set_pen(pen)
-        painter.set_brush(Qt.NoBrush if pen != Qt.NoPen else QShapeOptimizerProblemPanel._shape_color)
+        painter.set_brush(
+            Qt.NoBrush if pen != Qt.NoPen else QShapeOptimizerProblemPanel._shape_color)
         painter.draw_polygon(polygon)
         painter.restore()
 
@@ -207,14 +219,8 @@ Rétroaction proposée :
         painter.set_brush(QShapeOptimizerProblemPanel._obstacle_color)
         for obstacle in self.__points_list:
             painter.draw_ellipse(obstacle.x(), obstacle.y(),
-                                 QShapeOptimizerProblemPanel._obstacle_length, QShapeOptimizerProblemPanel._obstacle_length)
-        painter.restore()
-
-    def draw_bbox(self, painter: QPainter, polygon: QPolygonF):
-        painter.save()
-        painter.set_pen(Qt.NoPen)
-        painter.set_brush(QColor("Red"))
-        painter.draw_polygon(polygon.bounding_rect())
+                                 QShapeOptimizerProblemPanel._obstacle_length,
+                                 QShapeOptimizerProblemPanel._obstacle_length)
         painter.restore()
 
     def _update_from_simulation(self, ga: GeneticAlgorithm | None) -> None:
@@ -231,13 +237,13 @@ Rétroaction proposée :
             pen = QPen(Qt.white, 2, Qt.DotLine)
             for chromosome in ga.population[1:]:
                 rejected_form = self.transform_shape(form, chromosome)
-                self._draw_polygon(painter,rejected_form,0, pen)
+                self._draw_polygon(painter, rejected_form, 0, pen)
 
             best = ga.history.best_solution
             form = self.transform_shape(form, best)
             self._draw_polygon(painter, form, 0)
         else:
-            self._draw_polygon(painter, form, 1)            
+            self._draw_polygon(painter, form, 1)
             pass
 
         self._draw_obstacles(painter)

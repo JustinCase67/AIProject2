@@ -1,14 +1,12 @@
 import sys
 
-from ga_strategy_multi_mutation import MultiMutationStrategy
 from gaapp import QGAApp
-
-from ga_strategy_genes_mutation import GenesMutationStrategy, MultiMutationStrategy
+from ga_strategy_genes_mutation import GenesMutationStrategy
+from ga_strategy_multi_mutation import MultiMutationStrategy
 from ga_problem_unknown_number import QUnknownNumberProblemPanel
 from ga_problem_open_box import QOpenBoxProblemPanel
 from ga_problem_shape_optimizer import QShapeOptimizerProblemPanel
 from ga_problem_balistics import QBalisticProblem
-
 
 from PySide6.QtWidgets import QApplication
 
